@@ -8,20 +8,30 @@ import type { FurnitureProduct } from '../domain/types'
  * manufacturer dimensions. See public/models/ATTRIBUTION.md.
  */
 export const arPreviewProducts = [
-  'wooden-stool', 'monobloc-chair', 'accent-chair', 'lounge-chair',
+  'wooden-stool', 'monobloc-chair', 'gallinera-chair', 'gallinera-table', 'papasan-chair', 'woven-rocker', 'accent-chair', 'lounge-chair',
   'compact-wood-table', 'round-coffee-table', 'velvet-sofa', 'sofa-linen',
 ] as const
 
 export const polyHavenProductIds = new Set([
-  'wooden-stool', 'monobloc-chair', 'lounge-chair',
+  'wooden-stool', 'monobloc-chair', 'lounge-chair', 'gallinera-chair', 'gallinera-table',
   'compact-wood-table', 'round-coffee-table',
 ])
+
+export const innersceneModelIds = new Set(['papasan-chair', 'woven-rocker'])
+
+export function hasSourceMetricDimensions(productId: string) {
+  return isPolyHavenModel(productId) || innersceneModelIds.has(productId)
+}
 
 export function isPolyHavenModel(productId: string) {
   return polyHavenProductIds.has(productId)
 }
 
 const paths: Record<string, string> = {
+  'gallinera-chair': '/models/polyhaven/gallinera_chair.glb',
+  'gallinera-table': '/models/polyhaven/gallinera_table.glb',
+  'papasan-chair': '/models/innerscene/papasan-chair.glb',
+  'woven-rocker': '/models/innerscene/woven-lounge-rocker.glb',
   'wooden-stool': '/models/polyhaven/wooden_stool_02.glb',
   'monobloc-chair': '/models/polyhaven/plastic_monobloc_chair_01.glb',
   'lounge-chair': '/models/polyhaven/mid_century_lounge_chair.glb',
@@ -68,12 +78,14 @@ export async function createFurnitureAsset(product: FurnitureProduct): Promise<T
   // For Poly Haven models, keep all authored proportions instead of squeezing
   // three axes independently. Their API documents size in millimeters.
   // Other showcase assets retain their provisional fit-within behavior.
-  const uniformScale = isPolyHavenModel(product.id)
-    ? [...ratios].sort((a, b) => a - b)[1]
-    : Math.min(...ratios)
-  if (isPolyHavenModel(product.id)) {
+  const uniformScale = innersceneModelIds.has(product.id)
+    ? 1
+    : isPolyHavenModel(product.id) ? [...ratios].sort((a, b) => a - b)[1]
+      : Math.min(...ratios)
+  if (hasSourceMetricDimensions(product.id)) {
     const mismatch = Math.max(...ratios) / Math.min(...ratios)
-    if (mismatch > 1.18) {
+    const absoluteMismatch = Math.max(...ratios.map(v => Math.max(v,1/v)))
+    if (mismatch > 1.18 || (innersceneModelIds.has(product.id) && absoluteMismatch > 1.10)) {
       throw new Error(product.name + ' source dimensions do not match the 3D geometry. Placement blocked to avoid misleading scale.')
     }
   }
@@ -96,9 +108,11 @@ export async function createFurnitureAsset(product: FurnitureProduct): Promise<T
   pivot.userData = {
     productId: product.id,
     modelSizeMeters: [finalSize.x, finalSize.y, finalSize.z],
-    scaleEvidence: isPolyHavenModel(product.id)
-      ? 'Poly Haven source-model dimensions (approximate, not retail verified)'
-      : 'Provisional demo dimensions; not independently measured',
+    scaleEvidence: innersceneModelIds.has(product.id)
+      ? 'Innerscene CC0 original model, authored at approximate real-world scale; not retail verified'
+      : isPolyHavenModel(product.id)
+        ? 'Poly Haven source-model dimensions (approximate, not retail verified)'
+        : 'Provisional demo dimensions; not independently measured',
   }
   return pivot
 }

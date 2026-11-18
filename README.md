@@ -31,9 +31,9 @@ The application opens into the camera-first flow. On Android phones that support
 
 A new **SLAM test page** is available at `/slam-lab.html`, linked from the camera-first home screen. It uses the 8th Wall Distributed Engine Binary (loaded from its public CDN under its separate binary license), a textured sofa, an estimated ground plane and world-tracking status. This is a proof of concept: **no physical device tracking, floor anchoring or absolute-scale accuracy has been confirmed yet**. See `docs/SLAM_TEST_PROTOCOL.md` for the procedure and acceptance gates. Working Camera Furniture Studio remains unchanged at the home page. New development continues on `main`.
 
-## Eight-model spatial testing collection
+## Twelve-model spatial testing collection
 
-The SLAM experiment at `/slam-lab.html` now has eight select-and-place 3D furniture models, including a **small wooden stool as its default**, a plastic chair, lounge chair, two tables and three pre-existing sofa/chair models. The five Poly Haven models use 1K textured GLBs repackaged from the CC0 library, with **approximate source-model dimensions in meters** (not independently verified retail specifications). Other showcase models have provisional scale; their actual rendered dimensions are displayed when loaded.
+The SLAM experiment at `/slam-lab.html` now has 12 textured 3D furniture models, with a **small wooden stool as its default**. The collection includes the Filipino Gallinera Chair and Gallinera Table from Poly Haven, two CC0 woven furniture models from Innerscene, three existing showcase assets, and five other Poly Haven pieces. Source-model dimensions are approximate, not certified retail specifications. The loaded models' actual rendered dimensions are displayed when selected.
 
 Users can filter categories, switch models, place up to eight objects at tracked floor targets, rotate or remove the last object, and export the tracking log. **Accurate world scale and physical floor anchoring are still device-test requirements.** See `docs/SLAM_TEST_PROTOCOL.md` and `public/models/ATTRIBUTION.md`.
 
@@ -43,6 +43,25 @@ powershell -ExecutionPolicy Bypass -File scripts/fetch-polyhaven-assets.ps1
 node scripts/pack-polyhaven-glb.mjs
 ```
 The published application only requires the packed `public/models/polyhaven/*.glb` files; it does not require the downloaded loose textures.
+
+## Fast tracked AR placement (v0.5)
+
+The experimental browser SLAM screen now favors one-handed use:
+1. Select an item from the **12-piece catalog**, including two genuine Filipino Gallinera references (CC0) and two Filipino-inspired CC0 woven/rattan styles.
+2. Point at the floor, wait until the target is **green** (about 0.4 seconds of agreeing tracked ray hits).
+3. Tap **Place selected furniture** or the unobstructed live camera view. Rapid scanning swipes are ignored.
+4. After placement the catalog collapses automatically to the compact **Place / Undo / Change furniture** bar.
+5. The most recently selected model is restored from optional local browser storage; models are loaded **only when selected** and cached in the current page.
+
+The floor target filter detects unstable tap positions; it **does not calibrate, fix or guarantee SLAM metric scale**. Physical placement and room measurements must still be compared with a real tape measure on the target phone. No arbitrary physical resize control is introduced for tracked AR.
+
+Tests:
+```powershell
+node scripts/test-floor-aim.mjs
+node scripts/smoke-quick-place.mjs
+node scripts/smoke-furniture-assets.mjs
+```
+The quick placement test uses a mock camera pose, **not** the actual device's SLAM tracking. See `docs/SLAM_PHONE_TEST.md` for real phone checks.
 
 ## Desktop development
 
@@ -111,10 +130,10 @@ A real device test and localization proof of concept must pass before claiming a
 
 ## Experimental 8th Wall SLAM floor-tracking test
 
-The separate \`/slam-lab.html\` entry point is a **work-in-progress phone experiment**, not an approved replacement for the working camera studio. The engine binary is loaded from 8th Wall's official CDN when the experiment page opens. The binary is not bundled into this Git repository.
+The separate `/slam-lab.html` entry point is a **work-in-progress phone experiment**, not an approved replacement for the working camera studio. The engine binary is loaded from 8th Wall's official CDN when the experiment page opens. The binary is not bundled into this Git repository.
 
-Test on a real Android phone with HTTPS: open \`https://<your-host>/slam-lab.html\`, tap **Start 8th Wall SLAM test**, grant camera permission, and aim at a well-lit floor with visible texture. When tracking reads **NORMAL**, choose **Place sofa on floor**, then slowly move left/right and record whether it remains stable. You can export a JSON log of tracking status, camera poses and manual placement coordinates. **The log does not include camera images.**
+Test on a real Android phone with HTTPS: open `https://<your-host>/slam-lab.html`, tap **Start 8th Wall SLAM test**, grant camera permission, and aim at a well-lit floor with visible texture. When tracking reads **NORMAL**, choose **Place sofa on floor**, then slowly move left/right and record whether it remains stable. You can export a JSON log of tracking status, camera poses and manual placement coordinates. **The log does not include camera images.**
 
 The tracked demonstration assumes a single estimated horizontal ground plane and uses provisional sofa dimensions. It does not automatically map walls, reconstruct the complete room, guarantee metric scale or restore furniture across browser sessions.
 
-Build the two Vite HTML entry points with \`npm run build\`. Use \`node scripts/smoke-slam-lab.mjs\` for a desktop mocked-engine smoke test; it does NOT prove actual tracking. See \`docs/REAL_AR_ARCHITECTURE.md\` and the official source https://github.com/8thwall/threejs-world-effects-example.
+Build the two Vite HTML entry points with `npm run build`. Use `node scripts/smoke-slam-lab.mjs` for a desktop mocked-engine smoke test; it does NOT prove actual tracking. See `docs/REAL_AR_ARCHITECTURE.md` and the official source https://github.com/8thwall/threejs-world-effects-example.

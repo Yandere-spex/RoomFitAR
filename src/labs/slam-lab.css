@@ -57,3 +57,16 @@ footer a{color:#d8f9e7}
 .lab-controls>small{font-size:9px;color:#dfeddf}
 @media(max-height:690px){.lab-controls{max-height:68dvh}.lab-furniture-card img,.lab-furniture-symbol{height:42px}.lab-furniture-card{min-width:92px;width:92px;flex-basis:92px}}
 @media(max-width:430px){.lab-status{padding:9px 11px}.lab-status strong{font-size:11px}.lab-controls{padding:17px 11px max(14px,env(safe-area-inset-bottom))}.lab-catalog-heading strong{font-size:12px}.lab-grid button{font-size:10px}}
+
+/* One-handed phone workflow: compact AR actions without hiding the camera. */
+#collapse-panel{flex:0 0 auto;border:1px solid #90c6a1;color:#e5fff0;background:#1a6c4e;border-radius:8px;padding:8px 10px;font:700 10px 'DM Sans',sans-serif;white-space:nowrap;touch-action:manipulation}
+.lab-quickbar{pointer-events:auto;margin-top:auto;background:linear-gradient(transparent,#082b20ed 12%,#08291ff5);padding:22px 13px max(15px,env(safe-area-inset-bottom));border-top:1px solid #92bd9f40;display:flex;flex-direction:column;gap:9px}
+.lab-quick-heading{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.lab-quick-heading strong{font-size:13px;max-width:58%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lab-quick-heading button{background:#265943;border:1px solid #83b8a0;color:#e7fff1;border-radius:9px;font-size:11px;font-weight:800;padding:10px 13px;white-space:nowrap;touch-action:manipulation}
+.lab-quick-actions{display:grid;grid-template-columns:minmax(0,2fr) minmax(95px,1fr);gap:8px}
+.lab-quick-actions button{min-height:48px;border:1px solid #7dc7a0;border-radius:11px;font-weight:800;font-size:13px;color:white;background:#22a37c;touch-action:manipulation}
+.lab-quick-actions button:last-child{background:#295443;border-color:#8caf9c}
+.lab-quick-actions button:disabled{opacity:.45}
+.lab-quickbar small{font-size:10px;line-height:1.4;color:#d3e5d7}
+@media (max-width:450px){.lab-quickbar{padding:17px 11px max(12px,env(safe-area-inset-bottom))}.lab-catalog-heading{flex-wrap:wrap}#asset-status{font-size:9px}#collapse-panel{font-size:10px}.lab-quick-actions button{min-height:52px}}

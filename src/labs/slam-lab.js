@@ -1,5 +1,6 @@
 import * as THREE from 'three'
-import { arPreviewProducts, createFurnitureAsset, isPolyHavenModel } from '../ar/furnitureModels'
+import { createFloorAimTracker } from './floorAimTracker'
+import { arPreviewProducts, createFurnitureAsset, hasSourceMetricDimensions } from '../ar/furnitureModels'
 import { catalogById } from '../domain/catalog'
 import './slam-lab.css'
 
@@ -15,6 +16,14 @@ const rotateLeft = el('rotate-left')
 const rotateRight = el('rotate-right')
 const clear = el('reset-sofa')
 const exportLog = el('export-log')
+const quickPlace = el('quick-place')
+const quickUndo = el('quick-undo')
+const optionsPanel = el('lab-controls')
+const quickBar = el('lab-quickbar')
+const floorRay = new THREE.Raycaster()
+const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+const hitPoint = new THREE.Vector3()
+const screenCenter = new THREE.Vector2(0, 0)
 const errorBox = el('failure')
 const liveErrorBox = el('failure-live')
 const engineLog = []
@@ -30,6 +39,8 @@ const state = {
   placed: [],
   reticle: null,
   placementPoint: null,
+  aimTracker: createFloorAimTracker(),
+  compact: false,
   origin: null,
   previous: null,
   cumulative: 0,
@@ -43,8 +54,8 @@ const log = (name, details = {}) => {
   if (engineLog.length > LIMIT) engineLog.shift()
 }
 const display = (status, description, good = false) => {
-  el('tracking-status').textContent = status
-  el('tracking-description').textContent = description
+  if (el('tracking-status').textContent !== status) el('tracking-status').textContent = status
+  if (el('tracking-description').textContent !== description) el('tracking-description').textContent = description
   el('tracking-dot').classList.toggle('good', good)
 }
 const message = (text) => {
@@ -52,13 +63,14 @@ const message = (text) => {
     box.hidden = false
     box.textContent = text
   }
+  if (state.running && state.compact) setCompact(false)
   log('error', { text })
 }
 window.addEventListener('error', (e) => log('javascript-error', { text: e.message }))
 window.addEventListener('unhandledrejection', (e) => log('promise-error', { text: String(e.reason) }))
 
-const sourceModelText = (id) => isPolyHavenModel(id)
-  ? 'Poly Haven model size, approximately metric. Not retail-product verified.'
+const sourceModelText = (id) => hasSourceMetricDimensions(id)
+  ? 'Original 3D model dimensions in meters; visual AR scale requires phone verification.'
   : 'Sample showcase scale is provisional. Check manufacturer measurements.'
 
 const dimensionText = (id) => {
@@ -75,15 +87,19 @@ function displayRenderedSize(id, model) {
 }
 
 function updatePlacementAvailability() {
-  place.disabled = state.tracking !== 'NORMAL' ||
-    !state.modelTemplates.has(state.selectedId) ||
-    state.placementPoint === null
+  const enabled = state.running && state.tracking === 'NORMAL' &&
+    state.modelTemplates.has(state.selectedId) &&
+    state.placementPoint !== null &&
+    state.placed.length < 8
+  place.disabled = !enabled
+  quickPlace.disabled = !enabled
 }
 
 function updatePlacedControls() {
   const total = state.placed.length
   const has = total > 0
   clear.disabled = !has
+  quickUndo.disabled = !has
   rotateLeft.disabled = !has
   rotateRight.disabled = !has
   el('sofa-state').textContent = has
@@ -98,6 +114,8 @@ async function prepareAsset(id) {
   el('selected-size').textContent = dimensionText(id)
   el('selected-provenance').textContent = sourceModelText(id)
   renderCatalog()
+  el('quick-selected').textContent = catalogById[id].name
+  try { localStorage.setItem('roomfit:last-tracked-furniture', id) } catch { /* storage optional */ }
   el('asset-status').dataset.readyId = ''
   el('asset-status').dataset.actualMeters = ''
   if (state.modelTemplates.has(id)) {
@@ -139,7 +157,9 @@ function renderCatalog() {
   const target = el('furniture-catalog')
   const products = arPreviewProducts.filter((id) =>
     !state.category || state.category === 'All' ||
-    catalogById[id].kind === state.category)
+    (state.category === 'Filipino-Inspired'
+      ? ['Filipino-Inspired','Philippine Heritage'].includes(catalogById[id].category)
+      : catalogById[id].kind === state.category))
   target.replaceChildren()
   for (const id of products) {
     const product = catalogById[id]
@@ -149,7 +169,7 @@ function renderCatalog() {
     button.dataset.productId = id
     button.setAttribute('aria-pressed', String(id === state.selectedId))
     button.setAttribute('aria-label', product.name + ', ' + dimensionText(id))
-    if (isPolyHavenModel(id)) {
+    if (hasSourceMetricDimensions(id)) {
       const picture = document.createElement('img')
       picture.src = '/models/thumbs/' + id + '.webp'
       picture.alt = ''
@@ -175,6 +195,7 @@ function renderCatalog() {
 function buildCatalog() {
   const categories = [
     ['All', 'All'],
+    ['Filipino-Inspired', 'Filipino styles'],
     ['chair', 'Chairs / stools'],
     ['table', 'Tables'],
     ['sofa', 'Sofas'],
@@ -204,6 +225,7 @@ function removeLast() {
   if (!last) return
   if (state.scene) state.scene.remove(last.mesh)
   updatePlacedControls()
+  updatePlacementAvailability()
   log('furniture-removed', { productId: last.productId })
 }
 
@@ -211,6 +233,7 @@ function clearPlaced() {
   if (state.scene) for (const item of state.placed) state.scene.remove(item.mesh)
   state.placed = []
   updatePlacedControls()
+  updatePlacementAvailability()
 }
 
 function rotateLast(direction) {
@@ -218,6 +241,19 @@ function rotateLast(direction) {
   if (!last) return
   last.mesh.rotation.y += direction * Math.PI / 12
   log('furniture-rotated', { productId: last.productId, yawRadians: last.mesh.rotation.y })
+}
+
+function setCompact(compact) {
+  state.compact = compact
+  optionsPanel.hidden = compact
+  quickBar.hidden = !compact
+  updatePlacementAvailability()
+}
+
+function beginQuickPlacement() {
+  if (place.disabled) return false
+  place.click()
+  return true
 }
 
 function createScenePipeline() {
@@ -275,39 +311,45 @@ function createScenePipeline() {
     },
     onUpdate: ({ processCpuResult }) => {
       const reality = processCpuResult?.reality
-      if (!reality) return
+      if (!reality) {
+        state.aimTracker.clear()
+        state.placementPoint = null
+        state.tracking = 'LIMITED'
+        if (state.reticle) state.reticle.visible = false
+        updatePlacementAvailability()
+        return
+      }
       const status = reality.trackingStatus ?? 'LIMITED'
       if (state.tracking !== status) {
         state.tracking = status
         log('tracking-status', { status, reason: reality.trackingReason })
       }
       const good = status === 'NORMAL'
-      state.placementPoint = null
+      let candidate = null
       if (good && state.camera) {
         state.camera.updateMatrixWorld(true)
-        const ray = new THREE.Raycaster()
-        ray.setFromCamera(new THREE.Vector2(0, 0), state.camera)
-        const candidate = new THREE.Vector3()
-        const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
-        const intersection = ray.ray.intersectPlane(floor, candidate)
+        floorRay.setFromCamera(screenCenter, state.camera)
+        const intersection = floorRay.ray.intersectPlane(floorPlane, hitPoint)
         if (intersection) {
-          const range = candidate.distanceTo(state.camera.position)
-          if (range >= 0.25 && range <= 8) {
-            state.placementPoint = candidate.clone()
-          }
+          const range = hitPoint.distanceTo(state.camera.position)
+          if (range >= 0.25 && range <= 8) candidate = hitPoint
         }
       }
+      const stable = state.aimTracker.update(candidate, performance.now(), good)
+      state.placementPoint = stable ? new THREE.Vector3(stable.x, stable.y, stable.z) : null
       if (state.reticle) {
-        state.reticle.visible = Boolean(state.placementPoint)
-        if (state.placementPoint) state.reticle.position.copy(state.placementPoint).add(new THREE.Vector3(0, 0.016, 0))
+        state.reticle.visible = Boolean(candidate)
+        if (candidate) state.reticle.position.set(candidate.x, candidate.y + 0.016, candidate.z)
+        state.reticle.material.color.setHex(stable ? 0x36edae : 0xffc45d)
       }
       updatePlacementAvailability()
       display(
-        good ? 'Tracking NORMAL — ' + (state.placementPoint ? 'floor target ready' : 'aim at floor')
+        good ? (stable ? 'Floor steady · Ready to place' : (candidate ? 'Hold floor target steady…' : 'Aim at your floor'))
           : 'Tracking ' + status,
-        good ? 'Choose furniture, aim the green target at the floor and place it. Verify physical scale with a tape.'
-          : 'Aim at a textured floor and move your phone slowly. Placement requires reliable tracking.',
-        good,
+        good ? (stable ? 'Tap the open camera view or Place. Model scale stays locked.' :
+          'Aim at a textured floor and hold still for half a second.')
+          : 'Tracking must recover before another piece can be placed.',
+        good && Boolean(stable),
       )
       const p = reality.position
       const now = performance.now()
@@ -326,6 +368,9 @@ function createScenePipeline() {
       }
     },
     onException: (error) => {
+      state.tracking = 'LIMITED'
+      state.placementPoint = null
+      state.aimTracker.clear()
       message('Tracking engine error: ' + (error?.message ?? String(error)))
       display('Tracking engine error', 'See technical error message')
       place.disabled = true
@@ -373,7 +418,7 @@ start.addEventListener('click', () => {
     window.XR8.run({ canvas: el('camerafeed'), ...(mobileDevice ? { allowedDevices: mobileDevice } : {}) })
     state.running = true
     el('lab-instructions').hidden = true
-    el('lab-controls').hidden = false
+    setCompact(false)
     display('Opening camera…', 'Allow permission, aim toward a detailed floor and move slowly')
     log('camera-start-requested', { mode: 'absolute-scale' })
   } catch (error) {
@@ -398,6 +443,8 @@ place.addEventListener('click', () => {
   state.scene.add(mesh)
   state.placed.push({ mesh, productId: state.selectedId, point: [fmt(point.x), fmt(point.y), fmt(point.z)] })
   updatePlacedControls()
+  updatePlacementAvailability()
+  setCompact(true)
   log('furniture-placed', {
     productId: state.selectedId,
     xyz: [fmt(point.x), fmt(point.y), fmt(point.z)],
@@ -408,12 +455,34 @@ place.addEventListener('click', () => {
 clear.addEventListener('click', removeLast)
 rotateLeft.addEventListener('click', () => rotateLast(-1))
 rotateRight.addEventListener('click', () => rotateLast(1))
+quickPlace.addEventListener('click', beginQuickPlacement)
+quickUndo.addEventListener('click', removeLast)
+el('collapse-panel').addEventListener('click', () => setCompact(true))
+el('show-options').addEventListener('click', () => setCompact(false))
+
+// Tapping an unobstructed portion of the real camera is an additional
+// one-tap placement gesture; swipes used for scanning never trigger placement.
+const liveCanvas = el('camerafeed')
+let pressPosition = null
+liveCanvas.addEventListener('pointerdown', (event) => {
+  pressPosition = { id: event.pointerId, x: event.clientX, y: event.clientY, at: performance.now() }
+})
+liveCanvas.addEventListener('pointerup', (event) => {
+  const from = pressPosition
+  pressPosition = null
+  if (!from || from.id !== event.pointerId || !state.running) return
+  if (Math.hypot(event.clientX - from.x, event.clientY - from.y) > 16) return
+  if (performance.now() - from.at > 325) return
+  beginQuickPlacement()
+})
+liveCanvas.addEventListener('pointercancel', () => { pressPosition = null })
 el('recenter').addEventListener('click', () => {
   if (!state.running || !window.XR8?.XrController?.recenter) {
     message('Recenter is not available until the tracking engine has started.')
     return
   }
   clearPlaced()
+  state.aimTracker.clear()
   state.placementPoint = null
   if (state.reticle) state.reticle.visible = false
   updatePlacementAvailability()
@@ -445,6 +514,10 @@ exportLog.addEventListener('click', () => {
 window.addEventListener('pagehide', () => {
   if (state.running && window.XR8?.stop) window.XR8.stop()
 })
+try {
+  const prior = localStorage.getItem('roomfit:last-tracked-furniture')
+  if (arPreviewProducts.includes(prior)) state.selectedId = prior
+} catch { /* private mode or storage disabled */ }
 buildCatalog()
 if (window.XR8) initEngine()
 else window.addEventListener('xrloaded', initEngine, { once: true })

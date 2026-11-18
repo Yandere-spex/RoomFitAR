@@ -9,6 +9,8 @@ const names = [
   'coffee_table_round_01',
   'small_wooden_table_01',
   'mid_century_lounge_chair',
+  'gallinera_chair',
+  'gallinera_table',
 ]
 const align4 = (size) => (size + 3) & ~3
 for (const name of names) {

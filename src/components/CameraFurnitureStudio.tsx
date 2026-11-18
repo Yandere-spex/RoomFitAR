@@ -6,7 +6,7 @@ import { createFurnitureAsset } from '../ar/furnitureModels'
 import { catalogById } from '../domain/catalog'
 import './CameraFurnitureStudio.css'
 
-type ModelId = 'velvet-sofa' | 'sofa-linen' | 'accent-chair' | 'wooden-stool' | 'monobloc-chair' | 'lounge-chair' | 'compact-wood-table' | 'round-coffee-table'
+type ModelId = 'velvet-sofa' | 'sofa-linen' | 'accent-chair' | 'wooden-stool' | 'monobloc-chair' | 'lounge-chair' | 'compact-wood-table' | 'round-coffee-table' | 'papasan-chair' | 'woven-rocker' | 'gallinera-chair' | 'gallinera-table'
 type Piece = { id: string; model: ModelId; x: number; y: number; scale: number; yaw: number; tilt: number }
 type Props = { onBack: () => void }
 // New demo default; v1 saved compositions remain untouched as backup.
@@ -20,7 +20,9 @@ function restore(): Piece[] {
       const valid = value.filter((v): v is Piece => v && typeof v.id === 'string' &&
         (v.model === 'velvet-sofa' || v.model === 'sofa-linen' || v.model === 'accent-chair' ||
          v.model === 'wooden-stool' || v.model === 'monobloc-chair' || v.model === 'lounge-chair' ||
-         v.model === 'compact-wood-table' || v.model === 'round-coffee-table') &&
+         v.model === 'compact-wood-table' || v.model === 'round-coffee-table' ||
+         v.model === 'papasan-chair' || v.model === 'woven-rocker' ||
+         v.model === 'gallinera-chair' || v.model === 'gallinera-table') &&
         ['x','y','scale','yaw','tilt'].every(k => Number.isFinite(v[k])))
       if (valid.length === value.length) return valid
     }
@@ -194,6 +196,10 @@ export default function CameraFurnitureStudio({ onBack }: Props) {
     <div className="studio-tools">
       <div className="studio-tools-heading"><strong>Furniture preview</strong><button onClick={capture}><Camera size={17}/> Capture</button></div>
       <div className="studio-model-options">
+        <button onClick={()=>add('gallinera-chair')}><Plus size={15}/> Filipino Gallinera Chair · 58 cm</button>
+        <button onClick={()=>add('gallinera-table')}><Plus size={15}/> Filipino Gallinera Table · 83 cm</button>
+        <button onClick={()=>add('papasan-chair')}><Plus size={15}/> Woven Papasan · 118 cm</button>
+        <button onClick={()=>add('woven-rocker')}><Plus size={15}/> Woven Rocker · 78 cm</button>
         <button onClick={()=>add('wooden-stool')}><Plus size={15}/> Wooden stool · 27 cm</button>
         <button onClick={()=>add('monobloc-chair')}><Plus size={15}/> Plastic chair · 64 cm</button>
         <button onClick={()=>add('lounge-chair')}><Plus size={15}/> Lounge chair · 101 cm</button>

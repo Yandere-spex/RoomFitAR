@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 
 const ids = [
-  'wooden-stool', 'monobloc-chair', 'accent-chair', 'lounge-chair',
+  'wooden-stool', 'monobloc-chair', 'gallinera-chair', 'gallinera-table', 'papasan-chair', 'woven-rocker', 'accent-chair', 'lounge-chair',
   'compact-wood-table', 'round-coffee-table', 'velvet-sofa', 'sofa-linen',
 ]
 const browser = await chromium.launch({
@@ -50,6 +50,10 @@ try {
     'lounge-chair': [1.009, 1.169, 1.190],
     'compact-wood-table': [0.916, 0.533, 0.440],
     'round-coffee-table': [1.301, 0.491, 1.301],
+    'gallinera-chair': [0.581, 1.034, 0.604],
+    'gallinera-table': [0.830, 0.488, 0.518],
+    'papasan-chair': [1.18, 0.71, 1.18],
+    'woven-rocker': [0.78, 1.01, 1.14],
   }
   for (const id of ids) {
     await page.locator('.lab-furniture-card[data-product-id="' + id + '"]').click()
@@ -74,10 +78,12 @@ try {
     console.log('Ready:', id, display, 'rendered:', dimensions.map(n => n.toFixed(3)).join(' × '))
   }
 
+  await page.locator('#catalog-filters button', { hasText: 'Filipino styles' }).click()
+  assert.equal(await page.locator('.lab-furniture-card').count(), 4)
   await page.locator('#catalog-filters button', { hasText: 'Tables' }).click()
-  assert.equal(await page.locator('.lab-furniture-card').count(), 2)
+  assert.equal(await page.locator('.lab-furniture-card').count(), 3)
   await page.locator('#catalog-filters button', { hasText: 'All' }).click()
-  assert.equal(await page.locator('.lab-furniture-card').count(), 8)
+  assert.equal(await page.locator('.lab-furniture-card').count(), ids.length)
   assert.equal(await page.getByRole('button', { name: 'Place selected furniture' }).isEnabled(), false)
   const width = await page.evaluate(() => ({
     pageWidth: document.documentElement.scrollWidth,
@@ -86,5 +92,5 @@ try {
   assert.ok(width.pageWidth <= width.visibleWidth, 'Unexpected horizontal page overflow: ' + JSON.stringify(width))
   assert.deepEqual(missing, [], 'No missing model resources')
   assert.deepEqual(errors, [], 'No browser script errors')
-  console.log('RoomFit: all 8 realistic furniture assets loaded, sizes shown, category filters and 390px layout passed.')
+  console.log('RoomFit: all ' + ids.length + ' furniture assets loaded, source dimensions, filters and 390px layout passed.')
 } finally { await browser.close() }

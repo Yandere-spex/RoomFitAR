@@ -2,7 +2,7 @@
 # Run from PowerShell: powershell -ExecutionPolicy Bypass -File scripts/fetch-polyhaven-assets.ps1
 # Then run: node scripts/pack-polyhaven-glb.mjs
 $ErrorActionPreference='Stop'
-$ids=@('wooden_stool_02','plastic_monobloc_chair_01','coffee_table_round_01','small_wooden_table_01','mid_century_lounge_chair')
+$ids=@('wooden_stool_02','plastic_monobloc_chair_01','coffee_table_round_01','small_wooden_table_01','mid_century_lounge_chair','gallinera_chair','gallinera_table')
 $root=Join-Path $PSScriptRoot '..\public\models\polyhaven'
 $headers=@{'User-Agent'='RoomFitAR-Prototype/0.4'}
 function Get-CheckedAsset($url,$out,$expectedMd5){

@@ -48,7 +48,7 @@ try {
   assert.equal(info.worldTracking, false)
   assert.equal(info.ran, true)
   assert.ok(info.modules.includes('roomfit-slam-test'))
-  assert.equal(await page.locator('#furniture-catalog button.lab-furniture-card').count(), 8)
+  assert.equal(await page.locator('#furniture-catalog button.lab-furniture-card').count(), 12)
   await page.getByRole('button', { name: /Compact Wooden Stool, Size/i }).waitFor()
   await page.getByRole('button', { name: 'Place selected furniture' }).waitFor()
   assert.equal(await page.getByRole('button', { name: 'Place selected furniture' }).isEnabled(), false)

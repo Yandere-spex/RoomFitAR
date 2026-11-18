@@ -49,3 +49,14 @@ The current Camera Studio renders a 3D sofa over a video frame, but it does not 
 - https://github.com/8thwall/threejs-world-effects-example
 - https://8thwall.org/docs/api/engine/xrcontroller/pipelinemodule
 - https://8thwall.org/docs/engine/license
+
+## Fast placement check (new)
+- Choose **Woven Papasan Chair** or **Woven Lounge Rocker** in the **Filipino styles** filter to try the new CC0 woven designs. These are *Filipino-inspired aesthetics*, not proven Philippine-origin furniture; source-model sizes are displayed.
+- When floor-tracking status is NORMAL, the target should be **amber** during movement and **green** after the phone aims steadily at a fixed floor spot for about 0.4 s. Green does NOT guarantee absolute metric accuracy.
+- Tap **Place selected furniture** or an unoccupied camera area while it is green; a scanning swipe should never place an object.
+- After placement, confirm the **compact Place / Undo / Change furniture bar** appears so the real room is easier to see.
+- Tap **Undo last** and **Change furniture** to verify you can recover without reopening the camera.
+- Compare an actual known-length object in the room with the visual furniture size. If there is drift, wrong scale or objects floating, record the problem before making any purchase decision.
+
+
+- **Filipino heritage source examples:** Select Filipino Gallinera Chair or Gallinera Table under **Filipino styles**. Both models are explicit Philippine furniture references from Poly Haven CC0; approximate source-model dimensions are available. Compare on-screen apparent scale with a physical reference before claiming real-world size.

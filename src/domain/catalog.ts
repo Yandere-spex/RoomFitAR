@@ -1,6 +1,48 @@
 import type { FurnitureProduct } from './types'
 
 export const catalog: FurnitureProduct[] = [
+  {
+    id: 'gallinera-chair',
+    name: 'Filipino Gallinera Chair',
+    category: 'Philippine Heritage',
+    kind: 'chair',
+    dimensions: { width: 0.581, height: 1.034, depth: 0.604 },
+    color: '#725038',
+    accent: '#b18d69',
+    description: 'Traditional Filipino carved wooden chair, Poly Haven CC0; approx. 58 × 60 × 103 cm',
+  },
+  {
+    id: 'gallinera-table',
+    name: 'Filipino Gallinera Table',
+    category: 'Philippine Heritage',
+    kind: 'table',
+    dimensions: { width: 0.830, height: 0.488, depth: 0.518 },
+    color: '#77513a',
+    accent: '#c09e78',
+    description: 'Traditional Filipino carved wooden table, Poly Haven CC0; approx. 83 × 52 × 49 cm',
+  },
+
+  {
+    id: 'papasan-chair',
+    name: 'Woven Papasan Chair',
+    category: 'Filipino-Inspired',
+    kind: 'chair',
+    dimensions: { width: 1.18, height: 0.71, depth: 1.18 },
+    color: '#bb9770',
+    accent: '#758568',
+    description: 'Rattan bowl chair with sage cushion · CC0 source model, 118 × 118 × 71 cm',
+  },
+  {
+    id: 'woven-rocker',
+    name: 'Woven Lounge Rocker',
+    category: 'Filipino-Inspired',
+    kind: 'chair',
+    dimensions: { width: 0.78, height: 1.01, depth: 1.14 },
+    color: '#976b4a',
+    accent: '#cfb38a',
+    description: 'Teak frame and woven seat · CC0 source model, 78 × 114 × 101 cm',
+  },
+
   // Poly Haven source-model dimensions are provided in millimeters (X, Y, Z in Blender).
   // Converted to WebGL Y-up: width=X, height=Z, depth=Y. These are authentic
   // authored asset sizes, not independently measured retail-product tolerances.
