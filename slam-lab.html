@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#073629" />
+  <title>RoomFit AR | Experimental 8th Wall SLAM Test</title>
+  <meta name="description" content="Experimental tracked furniture and camera-pose test. Requires camera permission and suitable browser." />
+  <!-- Official unmodified engine, loaded through its published CDN distribution. -->
+  <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@8thwall/landing-page@1/dist/landing-page.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <canvas id="camerafeed"></canvas>
+  <main id="lab-overlay">
+    <header class="lab-header"><a href="/" aria-label="Back to RoomFit home">← RoomFit AR</a><span>SLAM experiment · not production</span></header>
+    <div class="lab-status" role="status"><span id="tracking-dot"></span><strong id="tracking-status">Loading tracking engine...</strong><small id="tracking-description">Device capability is not verified yet</small></div>
+    <div class="lab-instructions" id="lab-instructions">
+      <h1>Test furniture that stays in the room</h1>
+      <p>This version uses 8th Wall's browser SLAM engine instead of a screen-space camera filter. It is a technical experiment; floor stability, physical scale and accuracy are not yet validated.</p>
+      <button id="start-tracking" disabled>Loading engine...</button>
+      <small>Move slowly, point at a well-lit textured floor, then place the sofa when tracking reads NORMAL. The model should stay in place when you move the phone.</small>
+      <div id="failure" role="alert" hidden></div>
+    </div>
+    <section class="lab-controls" id="lab-controls" hidden>
+      <p>Test 1: put a sofa on the floor. Walk slowly left / right and examine whether its position stays stable.</p>
+      <div class="lab-grid">
+        <button id="place-sofa" disabled>Place sofa on floor</button>
+        <button id="reset-sofa" disabled>Remove sofa</button>
+        <button id="export-log">Export tracking log</button>
+      </div>
+      <div class="lab-metrics"><span>Camera traveled: <b id="distance">—</b></span><span>Sofa: <b id="sofa-state">Not placed</b></span></div>
+      <small>SLAM provides an estimated single horizontal plane (Y=0); not actual room walls. Metric calibration and physical position are unverified. No camera images are saved in the log.</small>
+    </section>
+    <footer><a href="https://8thwall.org/docs/engine/license" target="_blank" rel="noreferrer">8th Wall binary license</a> · Powered by 8th Wall SLAM · <a href="/">Return to working camera version</a></footer>
+  </main>
+  <script type="module" src="/src/labs/slam-lab.js"></script>
+</body>
+</html>

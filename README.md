@@ -91,3 +91,13 @@ A real device test and localization proof of concept must pass before claiming a
 **Measurement status:** Computational geometry is unit tested in `scripts/test-measurements.mjs`. WebXR spatial tracking has **not** been tested on the user's actual phone. All numerical results are labelled **AR estimates**, and should be compared with tape/laser measurements before real-world use.
 
 **No low-poly rooms in tracked AR:** The AR mode uses the phone's physical environment and licensed textured GLB demo furniture. The separate Digital Draft remains an optional non-AR preview.
+
+## Experimental 8th Wall SLAM floor-tracking test
+
+The separate \`/slam-lab.html\` entry point is a **work-in-progress phone experiment**, not an approved replacement for the working camera studio. The engine binary is loaded from 8th Wall's official CDN when the experiment page opens. The binary is not bundled into this Git repository.
+
+Test on a real Android phone with HTTPS: open \`https://<your-host>/slam-lab.html\`, tap **Start 8th Wall SLAM test**, grant camera permission, and aim at a well-lit floor with visible texture. When tracking reads **NORMAL**, choose **Place sofa on floor**, then slowly move left/right and record whether it remains stable. You can export a JSON log of tracking status, camera poses and manual placement coordinates. **The log does not include camera images.**
+
+The tracked demonstration assumes a single estimated horizontal ground plane and uses provisional sofa dimensions. It does not automatically map walls, reconstruct the complete room, guarantee metric scale or restore furniture across browser sessions.
+
+Build the two Vite HTML entry points with \`npm run build\`. Use \`node scripts/smoke-slam-lab.mjs\` for a desktop mocked-engine smoke test; it does NOT prove actual tracking. See \`docs/REAL_AR_ARCHITECTURE.md\` and the official source https://github.com/8thwall/threejs-world-effects-example.
