@@ -1,5 +1,6 @@
 import * as THREE from 'three'
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { arPreviewProducts, createFurnitureAsset, isPolyHavenModel } from '../ar/furnitureModels'
+import { catalogById } from '../domain/catalog'
 import './slam-lab.css'
 
 // Separate R&D experiment: no DOM camera-video overlay or fabricated camera poses.
@@ -9,7 +10,9 @@ window.THREE = THREE
 
 const el = (id) => document.getElementById(id)
 const start = el('start-tracking')
-const place = el('place-sofa')
+const place = el('place-furniture')
+const rotateLeft = el('rotate-left')
+const rotateRight = el('rotate-right')
 const clear = el('reset-sofa')
 const exportLog = el('export-log')
 const errorBox = el('failure')
@@ -22,8 +25,11 @@ const state = {
   scene: null,
   camera: null,
   renderer: null,
-  sample: null,
-  furniture: null,
+  selectedId: 'wooden-stool',
+  modelTemplates: new Map(),
+  placed: [],
+  reticle: null,
+  placementPoint: null,
   origin: null,
   previous: null,
   cumulative: 0,
@@ -50,6 +56,169 @@ const message = (text) => {
 }
 window.addEventListener('error', (e) => log('javascript-error', { text: e.message }))
 window.addEventListener('unhandledrejection', (e) => log('promise-error', { text: String(e.reason) }))
+
+const sourceModelText = (id) => isPolyHavenModel(id)
+  ? 'Poly Haven model size, approximately metric. Not retail-product verified.'
+  : 'Sample showcase scale is provisional. Check manufacturer measurements.'
+
+const dimensionText = (id) => {
+  const d = catalogById[id].dimensions
+  return 'Size: ' + d.width.toFixed(2) + ' m wide × ' +
+    d.depth.toFixed(2) + ' m deep × ' + d.height.toFixed(2) + ' m high'
+}
+
+function displayRenderedSize(id, model) {
+  if (state.selectedId !== id) return
+  const [width, height, depth] = model.userData.modelSizeMeters
+  el('selected-size').textContent = 'Rendered: ' + width.toFixed(2) + ' m wide × ' +
+    depth.toFixed(2) + ' m deep × ' + height.toFixed(2) + ' m high'
+}
+
+function updatePlacementAvailability() {
+  place.disabled = state.tracking !== 'NORMAL' ||
+    !state.modelTemplates.has(state.selectedId) ||
+    state.placementPoint === null
+}
+
+function updatePlacedControls() {
+  const total = state.placed.length
+  const has = total > 0
+  clear.disabled = !has
+  rotateLeft.disabled = !has
+  rotateRight.disabled = !has
+  el('sofa-state').textContent = has
+    ? total + ' placed · last: ' + catalogById[state.placed.at(-1).productId].name
+    : 'None placed'
+}
+
+async function prepareAsset(id) {
+  if (!catalogById[id]) return
+  state.selectedId = id
+  el('selected-name').textContent = catalogById[id].name
+  el('selected-size').textContent = dimensionText(id)
+  el('selected-provenance').textContent = sourceModelText(id)
+  renderCatalog()
+  el('asset-status').dataset.readyId = ''
+  el('asset-status').dataset.actualMeters = ''
+  if (state.modelTemplates.has(id)) {
+    el('asset-status').textContent = 'Ready'
+    el('asset-status').dataset.readyId = id
+    el('asset-status').dataset.actualMeters = JSON.stringify(state.modelTemplates.get(id).userData.modelSizeMeters)
+    displayRenderedSize(id, state.modelTemplates.get(id))
+    updatePlacementAvailability()
+    return
+  }
+  el('asset-status').textContent = 'Loading textured model…'
+  try {
+    // Load only a chosen model, not the entire collection into phone memory.
+    const model = await createFurnitureAsset(catalogById[id])
+    state.modelTemplates.set(id, model)
+    log('model-loaded', {
+      productId: id,
+      modelSizeMeters: model.userData.modelSizeMeters,
+      provenance: model.userData.scaleEvidence,
+    })
+    if (state.selectedId === id) {
+      el('asset-status').textContent = 'Ready'
+      el('asset-status').dataset.readyId = id
+      el('asset-status').dataset.actualMeters = JSON.stringify(model.userData.modelSizeMeters)
+      displayRenderedSize(id, model)
+    }
+  } catch (error) {
+    log('model-error', { productId: id, message: error?.message ?? String(error) })
+    if (state.selectedId === id) {
+      el('asset-status').textContent = 'Asset unavailable'
+      message('Failed to load ' + catalogById[id].name + ': ' +
+        (error?.message ?? 'Asset or model dimensions unavailable'))
+    }
+  }
+  updatePlacementAvailability()
+}
+
+function renderCatalog() {
+  const target = el('furniture-catalog')
+  const products = arPreviewProducts.filter((id) =>
+    !state.category || state.category === 'All' ||
+    catalogById[id].kind === state.category)
+  target.replaceChildren()
+  for (const id of products) {
+    const product = catalogById[id]
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'lab-furniture-card' + (id === state.selectedId ? ' active' : '')
+    button.dataset.productId = id
+    button.setAttribute('aria-pressed', String(id === state.selectedId))
+    button.setAttribute('aria-label', product.name + ', ' + dimensionText(id))
+    if (isPolyHavenModel(id)) {
+      const picture = document.createElement('img')
+      picture.src = '/models/thumbs/' + id + '.webp'
+      picture.alt = ''
+      picture.loading = 'lazy'
+      button.append(picture)
+    } else {
+      const picture = document.createElement('span')
+      picture.className = 'lab-furniture-symbol'
+      picture.textContent = product.kind === 'sofa' ? '🛋️' : '🪑'
+      button.append(picture)
+    }
+    const name = document.createElement('strong')
+    name.textContent = product.name
+    button.append(name)
+    const size = document.createElement('small')
+    size.textContent = product.dimensions.width.toFixed(2) + 'm wide'
+    button.append(size)
+    button.addEventListener('click', () => void prepareAsset(id))
+    target.append(button)
+  }
+}
+
+function buildCatalog() {
+  const categories = [
+    ['All', 'All'],
+    ['chair', 'Chairs / stools'],
+    ['table', 'Tables'],
+    ['sofa', 'Sofas'],
+  ]
+  const target = el('catalog-filters')
+  for (const [key, name] of categories) {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.textContent = name
+    b.className = 'lab-category' + (key === 'All' ? ' active' : '')
+    b.addEventListener('click', () => {
+      state.category = key
+      for (const other of target.querySelectorAll('button')) {
+        other.classList.toggle('active', other === b)
+      }
+      renderCatalog()
+    })
+    target.append(b)
+  }
+  el('catalog-count').textContent = arPreviewProducts.length + ' pieces'
+  renderCatalog()
+  void prepareAsset(state.selectedId)
+}
+
+function removeLast() {
+  const last = state.placed.pop()
+  if (!last) return
+  if (state.scene) state.scene.remove(last.mesh)
+  updatePlacedControls()
+  log('furniture-removed', { productId: last.productId })
+}
+
+function clearPlaced() {
+  if (state.scene) for (const item of state.placed) state.scene.remove(item.mesh)
+  state.placed = []
+  updatePlacedControls()
+}
+
+function rotateLast(direction) {
+  const last = state.placed.at(-1)
+  if (!last) return
+  last.mesh.rotation.y += direction * Math.PI / 12
+  log('furniture-rotated', { productId: last.productId, yawRadians: last.mesh.rotation.y })
+}
 
 function createScenePipeline() {
   return {
@@ -88,37 +257,14 @@ function createScenePipeline() {
       })
       canvas.style.touchAction = 'none'
 
-      new GLTFLoader().load(
-        '/models/velvet-sofa.glb',
-        (gltf) => {
-          const mesh = gltf.scene
-          mesh.updateMatrixWorld(true)
-          const bounds = new THREE.Box3().setFromObject(mesh)
-          const dims = bounds.getSize(new THREE.Vector3())
-          if (dims.x <= 0 || dims.y <= 0 || dims.z <= 0) {
-            message('Invalid sofa geometry: cannot place model')
-            return
-          }
-          // Provisional display size; NOT a manufacturer's verified product measurement.
-          mesh.scale.multiplyScalar(Math.min(2.18 / dims.x, 0.82 / dims.y, 0.94 / dims.z))
-          mesh.updateMatrixWorld(true)
-          const scaled = new THREE.Box3().setFromObject(mesh)
-          const center = scaled.getCenter(new THREE.Vector3())
-          mesh.position.set(-center.x, -scaled.min.y, -center.z)
-          mesh.traverse((node) => {
-            if (node.isMesh) {
-              node.castShadow = true
-              node.receiveShadow = true
-            }
-          })
-          const pivot = new THREE.Group()
-          pivot.add(mesh)
-          state.sample = pivot
-          log('model-loaded', { asset: 'velvet-sofa', dimensions: 'provisional' })
-        },
-        undefined,
-        () => message('The sofa model failed to download. Check the connection.'),
+      const reticle = new THREE.Mesh(
+        new THREE.RingGeometry(0.075, 0.092, 32).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: 0x39e2b1, depthTest: false }),
       )
+      reticle.visible = false
+      scene.add(reticle)
+      state.reticle = reticle
+      updatePlacementAvailability()
       display('Camera initializing', 'Waiting for tracked camera frames')
       log('engine-scene-started')
     },
@@ -136,11 +282,31 @@ function createScenePipeline() {
         log('tracking-status', { status, reason: reality.trackingReason })
       }
       const good = status === 'NORMAL'
-      place.disabled = !good || !state.sample
+      state.placementPoint = null
+      if (good && state.camera) {
+        state.camera.updateMatrixWorld(true)
+        const ray = new THREE.Raycaster()
+        ray.setFromCamera(new THREE.Vector2(0, 0), state.camera)
+        const candidate = new THREE.Vector3()
+        const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+        const intersection = ray.ray.intersectPlane(floor, candidate)
+        if (intersection) {
+          const range = candidate.distanceTo(state.camera.position)
+          if (range >= 0.25 && range <= 8) {
+            state.placementPoint = candidate.clone()
+          }
+        }
+      }
+      if (state.reticle) {
+        state.reticle.visible = Boolean(state.placementPoint)
+        if (state.placementPoint) state.reticle.position.copy(state.placementPoint).add(new THREE.Vector3(0, 0.016, 0))
+      }
+      updatePlacementAvailability()
       display(
-        good ? 'Tracking NORMAL — ready to place' : 'Tracking ' + status,
-        good ? 'The engine reports a camera pose. Move slowly to check whether placement remains stable.'
-          : 'Aim at a textured floor and move your phone slowly. Placement is disabled until tracking is NORMAL.',
+        good ? 'Tracking NORMAL — ' + (state.placementPoint ? 'floor target ready' : 'aim at floor')
+          : 'Tracking ' + status,
+        good ? 'Choose furniture, aim the green target at the floor and place it. Verify physical scale with a tape.'
+          : 'Aim at a textured floor and move your phone slowly. Placement requires reliable tracking.',
         good,
       )
       const p = reality.position
@@ -216,44 +382,41 @@ start.addEventListener('click', () => {
   }
 })
 place.addEventListener('click', () => {
-  if (state.tracking !== 'NORMAL' || !state.camera || !state.scene || !state.sample) return
-  state.camera.updateMatrixWorld(true)
-  const ray = new THREE.Raycaster()
-  ray.setFromCamera(new THREE.Vector2(0, 0), state.camera)
-  const point = new THREE.Vector3()
-  const ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
-  if (!ray.ray.intersectPlane(ground, point)) {
-    message('The camera center does not intersect the estimated floor. Tilt down and retry.')
+  if (state.tracking !== 'NORMAL' || !state.scene || !state.placementPoint) return
+  const selected = state.modelTemplates.get(state.selectedId)
+  if (!selected) {
+    message('Furniture model not loaded yet. Choose another or try again.')
     return
   }
-  if (point.distanceTo(state.camera.position) > 8 || point.distanceTo(state.camera.position) < 0.2) {
-    message('The candidate is outside a useful tracking distance. Move closer to the floor.')
+  if (state.placed.length >= 8) {
+    message('Maximum eight objects in one test session. Remove one before placing more.')
     return
   }
-  if (state.furniture) state.scene.remove(state.furniture)
-  state.furniture = state.sample.clone(true)
-  state.furniture.position.copy(point)
-  state.scene.add(state.furniture)
-  el('sofa-state').textContent = 'Placed at tracked 3D point'
-  clear.disabled = false
-  log('sofa-placed', { xyz: [fmt(point.x), fmt(point.y), fmt(point.z)] })
+  const point = state.placementPoint.clone()
+  const mesh = selected.clone(true)
+  mesh.position.copy(point)
+  state.scene.add(mesh)
+  state.placed.push({ mesh, productId: state.selectedId, point: [fmt(point.x), fmt(point.y), fmt(point.z)] })
+  updatePlacedControls()
+  log('furniture-placed', {
+    productId: state.selectedId,
+    xyz: [fmt(point.x), fmt(point.y), fmt(point.z)],
+    dimensionsMeters: catalogById[state.selectedId].dimensions,
+    source: sourceModelText(state.selectedId),
+  })
 })
-clear.addEventListener('click', () => {
-  if (state.furniture && state.scene) state.scene.remove(state.furniture)
-  state.furniture = null
-  clear.disabled = true
-  el('sofa-state').textContent = 'Not placed'
-  log('sofa-removed')
-})
+clear.addEventListener('click', removeLast)
+rotateLeft.addEventListener('click', () => rotateLast(-1))
+rotateRight.addEventListener('click', () => rotateLast(1))
 el('recenter').addEventListener('click', () => {
   if (!state.running || !window.XR8?.XrController?.recenter) {
     message('Recenter is not available until the tracking engine has started.')
     return
   }
-  if (state.furniture && state.scene) state.scene.remove(state.furniture)
-  state.furniture = null
-  clear.disabled = true
-  el('sofa-state').textContent = 'Not placed (recentered)'
+  clearPlaced()
+  state.placementPoint = null
+  if (state.reticle) state.reticle.visible = false
+  updatePlacementAvailability()
   window.XR8.XrController.recenter()
   state.origin = null
   state.previous = null
@@ -282,6 +445,7 @@ exportLog.addEventListener('click', () => {
 window.addEventListener('pagehide', () => {
   if (state.running && window.XR8?.stop) window.XR8.stop()
 })
+buildCatalog()
 if (window.XR8) initEngine()
 else window.addEventListener('xrloaded', initEngine, { once: true })
 setTimeout(() => {

@@ -1,6 +1,59 @@
 import type { FurnitureProduct } from './types'
 
 export const catalog: FurnitureProduct[] = [
+  // Poly Haven source-model dimensions are provided in millimeters (X, Y, Z in Blender).
+  // Converted to WebGL Y-up: width=X, height=Z, depth=Y. These are authentic
+  // authored asset sizes, not independently measured retail-product tolerances.
+  {
+    id: 'wooden-stool',
+    name: 'Compact Wooden Stool',
+    category: 'Seating',
+    kind: 'chair',
+    dimensions: { width: 0.265, height: 0.182, depth: 0.183 },
+    color: '#8a5c37',
+    accent: '#b08e65',
+    description: 'Small wooden footstool · Poly Haven source dimensions',
+  },
+  {
+    id: 'monobloc-chair',
+    name: 'Monobloc Chair',
+    category: 'Seating',
+    kind: 'chair',
+    dimensions: { width: 0.642, height: 0.880, depth: 0.628 },
+    color: '#e4e2d9',
+    accent: '#c7c3b7',
+    description: 'Everyday plastic chair · Poly Haven source dimensions',
+  },
+  {
+    id: 'round-coffee-table',
+    name: 'Round Coffee Table',
+    category: 'Tables',
+    kind: 'table',
+    dimensions: { width: 1.301, height: 0.491, depth: 1.301 },
+    color: '#d9d4c6',
+    accent: '#a5a49e',
+    description: 'Round marble-topped table · Poly Haven source dimensions',
+  },
+  {
+    id: 'compact-wood-table',
+    name: 'Small Wooden Table',
+    category: 'Tables',
+    kind: 'table',
+    dimensions: { width: 0.916, height: 0.533, depth: 0.440 },
+    color: '#956e4b',
+    accent: '#bb9670',
+    description: 'Compact everyday wooden table · source dimensions',
+  },
+  {
+    id: 'lounge-chair',
+    name: 'Leather Lounge Chair',
+    category: 'Seating',
+    kind: 'chair',
+    dimensions: { width: 1.009, height: 1.169, depth: 1.190 },
+    color: '#604935',
+    accent: '#9c7653',
+    description: 'Mid-century lounge chair · Poly Haven source dimensions',
+  },
   {
     id: 'velvet-sofa',
     name: 'Modern Velvet Sofa',

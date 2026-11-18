@@ -3,7 +3,7 @@
 Status: Experimental. This is not a feature-complete room scanner. Do not use estimates for purchasing furniture.
 
 ## Why this test matters
-The current Camera Studio renders a 3D sofa over a video frame, but it does not track phone movement or hold furniture at a room coordinate. This test uses a separate 8th Wall SLAM engine to evaluate actual world tracking on a phone that could not start WebXR immersive-ar.
+The current Camera Studio renders a 3D sofa over a video frame, but it does not track phone movement or hold furniture at a room coordinate. This test uses a separate 8th Wall SLAM engine with eight physically sized demonstration 3D models to evaluate world tracking on a phone that could not start WebXR immersive-ar.
 
 ## Test 1: Engine and floor
 1. Use a phone browser that allows camera access to a secure HTTPS website.
@@ -12,17 +12,19 @@ The current Camera Studio renders a 3D sofa over a video frame, but it does not 
 4. Stand in a well-lit room and point at a floor with distinct details. Move phone slowly.
 5. Observe tracking status. **NORMAL** indicates the engine reports active tracking. **LIMITED** indicates it is not ready for placement.
 6. If permission is denied, a loading issue appears, or the engine cannot initialize, record the message. Do not assume it is an ARCore/WebXR failure; this engine has a different compatibility path.
+7. The small wooden stool should be preselected as the first test item; wait until the model status reads **Ready**.
 
 ## Test 2: Physical position
-1. Only when status is NORMAL, tap **Place sofa on floor** with the center of the camera aimed at a visible floor spot.
+1. Only when status is **NORMAL** and the green floor target is visible, select **Compact Wooden Stool** (approximately 27 cm wide), then tap **Place selected furniture**. This is an easier first test than the full-size sofa.
 2. Move the phone about 0.5 m to the left, then to the right, while keeping that floor spot in view.
-3. Check if sofa stays on the *same physical floor spot* as its angle on screen changes.
+3. Check if the stool stays on the *same physical floor spot* as its angle on screen changes.
 4. Carefully move about 1 m closer and farther away, monitoring whether size/perspective changes naturally.
-5. If the sofa appears glued to the screen, floats, sinks, jumps, or drifts, the test has not passed.
-6. Use **Recenter tracking** if the tracking state becomes inconsistent. Recenter clears the sofa position on purpose.
+5. If the furniture appears glued to the screen, floats, sinks, jumps, or drifts, the test has not passed.
+6. Test a plastic chair, small table, lounge chair, or sofa using the horizontally scrolling furniture catalog. Filter by category if desired. The **Rotate -15°**, **Rotate +15°**, and **Remove last** controls operate on the most recently placed object. Up to eight objects can be placed in the current session.
+7. Use **Recenter tracking** if the tracking state becomes inconsistent. Recenter clears all placements on purpose.
 
 ## Test 3: Evidence and metrics
-1. Compare one physical 1 m or 2 m reference length using a real tape measure. Do not claim centimeter accuracy without repeated verification.
+1. Compare a physical reference with a real tape measure. Start by verifying the approximately 27 cm width of the default model against an actual 27 cm length and evaluate whether the *visual* AR size matches. The object's model dimensions are sourced from Poly Haven, but the phone's absolute world scale is not independently calibrated. Do not claim centimeter accuracy without repeated verification.
 2. Record device model, browser/version, floor texture, lighting and tracking outcome.
 3. Tap **Export tracking log** and save the JSON. It logs statuses and estimated camera coordinates, not photographs.
 4. Note whether the camera status was NORMAL or LIMITED during the placement.

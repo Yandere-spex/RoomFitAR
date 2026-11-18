@@ -89,7 +89,7 @@ export default function WebXRRoom({ onExit, onFallback, onMessage }: Props) {
   const [measureKind, setMeasureKind] = useState<MeasurementKind>('distance')
   const [points, setPoints] = useState<FloorPoint[]>([])
   const [tapeReference, setTapeReference] = useState('')
-  const [selectedProductId, setSelectedProductId] = useState<string>('accent-chair')
+  const [selectedProductId, setSelectedProductId] = useState<string>('wooden-stool')
   const [placedCount, setPlacedCount] = useState(0)
   const [surfaceFound, setSurfaceFound] = useState(false)
   const [busy, setBusy] = useState(false)

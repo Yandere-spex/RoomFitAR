@@ -31,6 +31,19 @@ The application opens into the camera-first flow. On Android phones that support
 
 A new **SLAM test page** is available at `/slam-lab.html`, linked from the camera-first home screen. It uses the 8th Wall Distributed Engine Binary (loaded from its public CDN under its separate binary license), a textured sofa, an estimated ground plane and world-tracking status. This is a proof of concept: **no physical device tracking, floor anchoring or absolute-scale accuracy has been confirmed yet**. See `docs/SLAM_TEST_PROTOCOL.md` for the procedure and acceptance gates. Working Camera Furniture Studio remains unchanged at the home page. New development continues on `main`.
 
+## Eight-model spatial testing collection
+
+The SLAM experiment at `/slam-lab.html` now has eight select-and-place 3D furniture models, including a **small wooden stool as its default**, a plastic chair, lounge chair, two tables and three pre-existing sofa/chair models. The five Poly Haven models use 1K textured GLBs repackaged from the CC0 library, with **approximate source-model dimensions in meters** (not independently verified retail specifications). Other showcase models have provisional scale; their actual rendered dimensions are displayed when loaded.
+
+Users can filter categories, switch models, place up to eight objects at tracked floor targets, rotate or remove the last object, and export the tracking log. **Accurate world scale and physical floor anchoring are still device-test requirements.** See `docs/SLAM_TEST_PROTOCOL.md` and `public/models/ATTRIBUTION.md`.
+
+Reproduce Poly Haven source assets when needed on a Windows workstation:
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/fetch-polyhaven-assets.ps1
+node scripts/pack-polyhaven-glb.mjs
+```
+The published application only requires the packed `public/models/polyhaven/*.glb` files; it does not require the downloaded loose textures.
+
 ## Desktop development
 
 ```bat

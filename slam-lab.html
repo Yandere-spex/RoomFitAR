@@ -17,23 +17,36 @@
     <header class="lab-header"><a href="/" aria-label="Back to RoomFit home">← RoomFit AR</a><span>SLAM experiment · not production</span></header>
     <div class="lab-status" role="status"><span id="tracking-dot"></span><strong id="tracking-status">Loading tracking engine...</strong><small id="tracking-description">Device capability is not verified yet</small></div>
     <div class="lab-instructions" id="lab-instructions">
-      <h1>Test furniture that stays in the room</h1>
+      <h1>Test real-size furniture placement</h1>
       <p>This version uses 8th Wall's browser SLAM engine instead of a screen-space camera filter. It is a technical experiment; floor stability, physical scale and accuracy are not yet validated.</p>
       <button id="start-tracking" disabled>Loading engine...</button>
-      <small>Move slowly, point at a well-lit textured floor, then place the sofa when tracking reads NORMAL. The model should stay in place when you move the phone.</small>
+      <small>Start with a compact 27 cm wooden footstool rather than a large sofa. After tracking reaches NORMAL, select any furniture below and test its real-world placement. All dimensions are approximate model sizes, not certified product measurements.</small>
       <div id="failure" role="alert" hidden></div>
     </div>
     <section class="lab-controls" id="lab-controls" hidden>
-      <p>Test 1: put a sofa on the floor. Walk slowly left / right and examine whether its position stays stable.</p>
+      <p>Choose a 3D model with known source-model dimensions. Aim the center of your camera toward the tracked floor, then place the item and walk to either side of it.</p>
+      <div class="lab-catalog-heading">
+        <strong>Furniture collection <span id="catalog-count">8 pieces</span></strong>
+        <span id="asset-status" aria-live="polite">Preparing model…</span>
+      </div>
+      <div id="catalog-filters" class="lab-category-filters" role="group" aria-label="Furniture categories"></div>
+      <div id="furniture-catalog" class="lab-catalog" role="group" aria-label="Select 3D furniture"></div>
+      <div class="lab-selection">
+        <strong id="selected-name">Compact Wooden Stool</strong>
+        <span id="selected-size">Model size: 0.27 m W × 0.18 m D × 0.18 m H</span>
+        <small id="selected-provenance">Dimensions are from the asset creator, not verified retail specifications.</small>
+      </div>
       <div class="lab-grid">
-        <button id="place-sofa" disabled>Place sofa on floor</button>
-        <button id="reset-sofa" disabled>Remove sofa</button>
+        <button id="place-furniture" disabled>Place selected furniture</button>
+        <button id="rotate-left" disabled>↶ Rotate -15°</button>
+        <button id="rotate-right" disabled>↷ Rotate +15°</button>
+        <button id="reset-sofa" disabled>Remove last</button>
         <button id="recenter" type="button">Recenter tracking</button>
         <button id="export-log">Export tracking log</button>
       </div>
-      <div class="lab-metrics"><span>Camera traveled: <b id="distance">—</b></span><span>Sofa: <b id="sofa-state">Not placed</b></span></div>
+      <div class="lab-metrics"><span>Camera traveled: <b id="distance">—</b></span><span>Objects: <b id="sofa-state">None placed</b></span></div>
       <div id="failure-live" role="alert" hidden></div>
-      <small>SLAM provides an estimated single horizontal plane (Y=0), not measured room walls. The scale requires forward/back phone movement and verification. Physical accuracy is unverified. No camera images are saved in the log.</small>
+      <small>Floor plane and world scale are SLAM estimates. Compare a known physical dimension with a tape measure. Imported model dimensions follow the original asset metadata and may differ from actual products. The log does not contain camera frames.</small>
     </section>
     <footer><a href="https://8thwall.org/docs/engine/license" target="_blank" rel="noreferrer">8th Wall binary license</a> · Powered by 8th Wall SLAM · <a href="/">Return to working camera version</a></footer>
   </main>

@@ -33,3 +33,6 @@ scripts/*.png
 *.p12
 *.pfx
 .local-test/
+
+# Source glTF, texture and bin files used only when rebuilding packed GLBs
+public/models/polyhaven/*/

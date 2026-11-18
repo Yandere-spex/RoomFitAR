@@ -106,8 +106,8 @@ export default function CameraHome({ capabilities, onLaunchAR, onOpenStudio, onO
       <section className="camera-next camera-experiment">
         <div>
           <span className="camera-eyebrow">EXPERIMENTAL · NOT YET DEVICE-VALIDATED</span>
-          <h3>Test real-world sofa anchoring (SLAM)</h3>
-          <p>This separate 8th Wall tracking experiment attempts to recognize a floor and keep a textured sofa at one physical point as you move your phone. It does not require WebXR, but may not run on all phones. Room measurements remain unverified.</p>
+          <h3>Test tracked furniture placement (SLAM)</h3>
+          <p>This experimental 8th Wall tracker offers eight realistic 3D furniture models, starting with a small wooden stool. Select a piece, place it on the estimated floor and move your phone to check stability. Tracking and real-world size remain unverified on your device.</p>
         </div>
         <a href="/slam-lab.html" className="camera-test-link" onClick={stopCamera}><ScanLine size={18}/> Test SLAM Tracking <ChevronRight size={16}/></a>
       </section>

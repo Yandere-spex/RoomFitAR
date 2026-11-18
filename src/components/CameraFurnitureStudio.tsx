@@ -6,7 +6,7 @@ import { createFurnitureAsset } from '../ar/furnitureModels'
 import { catalogById } from '../domain/catalog'
 import './CameraFurnitureStudio.css'
 
-type ModelId = 'velvet-sofa' | 'sofa-linen' | 'accent-chair'
+type ModelId = 'velvet-sofa' | 'sofa-linen' | 'accent-chair' | 'wooden-stool' | 'monobloc-chair' | 'lounge-chair' | 'compact-wood-table' | 'round-coffee-table'
 type Piece = { id: string; model: ModelId; x: number; y: number; scale: number; yaw: number; tilt: number }
 type Props = { onBack: () => void }
 // New demo default; v1 saved compositions remain untouched as backup.
@@ -18,7 +18,9 @@ function restore(): Piece[] {
     const value: unknown = JSON.parse(localStorage.getItem(STORAGE) || 'null')
     if (Array.isArray(value) && value.length >= 1 && value.length <= 5) {
       const valid = value.filter((v): v is Piece => v && typeof v.id === 'string' &&
-        (v.model === 'velvet-sofa' || v.model === 'sofa-linen' || v.model === 'accent-chair') &&
+        (v.model === 'velvet-sofa' || v.model === 'sofa-linen' || v.model === 'accent-chair' ||
+         v.model === 'wooden-stool' || v.model === 'monobloc-chair' || v.model === 'lounge-chair' ||
+         v.model === 'compact-wood-table' || v.model === 'round-coffee-table') &&
         ['x','y','scale','yaw','tilt'].every(k => Number.isFinite(v[k])))
       if (valid.length === value.length) return valid
     }
@@ -192,6 +194,11 @@ export default function CameraFurnitureStudio({ onBack }: Props) {
     <div className="studio-tools">
       <div className="studio-tools-heading"><strong>Furniture preview</strong><button onClick={capture}><Camera size={17}/> Capture</button></div>
       <div className="studio-model-options">
+        <button onClick={()=>add('wooden-stool')}><Plus size={15}/> Wooden stool · 27 cm</button>
+        <button onClick={()=>add('monobloc-chair')}><Plus size={15}/> Plastic chair · 64 cm</button>
+        <button onClick={()=>add('lounge-chair')}><Plus size={15}/> Lounge chair · 101 cm</button>
+        <button onClick={()=>add('compact-wood-table')}><Plus size={15}/> Small table · 92 cm</button>
+        <button onClick={()=>add('round-coffee-table')}><Plus size={15}/> Round table · 130 cm</button>
         <button onClick={()=>add('velvet-sofa')}><Plus size={15}/> Modern velvet sofa</button>
         <button onClick={()=>add('sofa-linen')}><Plus size={15}/> Vintage sofa</button>
         <button onClick={()=>add('accent-chair')}><Plus size={15}/> Accent chair</button>
@@ -214,7 +221,7 @@ export default function CameraFurnitureStudio({ onBack }: Props) {
         <button onClick={save}><Save size={15}/> Save layout</button>
         <button onClick={capture}><Download size={15}/> Save photo</button>
       </div>
-      <p>These are licensed textured demonstration models with unverified dimensions. Visual resizing is only for composition; it is not a meter-scale adjustment.</p>
+      <p>Poly Haven assets use approximate source-model dimensions; showcase models use provisional sizing. Camera Studio is an untracked visual composition, so apparent size is not a physical meter measurement.</p>
     </div>
     {notification&&<div className="studio-toast" role="status">{notification}</div>}
   </div>

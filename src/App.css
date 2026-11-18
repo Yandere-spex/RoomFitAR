@@ -142,3 +142,7 @@
 .camera-test-link{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 14px;min-height:42px;border-radius:9px;background:#267761;border:1px solid #267761;color:#fff;text-decoration:none;font-size:11px;font-weight:800;flex-shrink:0;white-space:nowrap}
 .camera-test-link:hover{background:#1a604c}
 @media(max-width:580px){.camera-test-link{width:100%}}
+
+/* Wider real-model collection on small tracked-AR screens */
+.xr-piece-list{justify-content:flex-start;overflow-x:auto;overscroll-behavior-x:contain;padding:4px 2px 10px;scrollbar-width:thin}
+.xr-piece-list button{flex:0 0 auto;white-space:nowrap}
