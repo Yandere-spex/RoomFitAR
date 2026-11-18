@@ -63,6 +63,20 @@ node scripts/smoke-furniture-assets.mjs
 ```
 The quick placement test uses a mock camera pose, **not** the actual device's SLAM tracking. See `docs/SLAM_PHONE_TEST.md` for real phone checks.
 
+
+## v0.6: mobile furniture editing (tracked AR experiment)
+
+- The 12-model catalog remains accessible from the **Change furniture** panel.
+- In compact view, **Rotate -15°**, **Rotate +15°**, **Move selected to target**, **Remove selected**, **Undo last**, and **Select next** are directly available.
+- Tap a previously placed 3D model to select it, or press **Select next** to cycle through multiple placed models.
+- Drag a selected model directly in the camera view to edit its horizontal position on the estimated ground plane. This interaction requires NORMAL SLAM tracking and a valid floor intersection; no arbitrary 3D scale or height adjustments are made.
+- For more deliberate relocation, aim at the center floor target, hold until it is stable/green, then tap **Move selected to target**.
+- An aqua outline highlights the selected furniture floor position.
+- Both compact and full editing controls are available on narrow mobile viewports; large panels scroll internally so buttons remain reachable while the camera is visible.
+- Both camera placement and existing objects remain limited by the accuracy and drift of the device's visual tracking. The geometry and UI can be verified by automated tests; **correct real-world physical location and absolute scale still need on-device testing**.
+
+Mobile test: `node scripts/smoke-mobile-edit.mjs` simulates a world-tracked camera and checks rotation, drag, reposition, removal and accessibility at 320×568, 360×640 and 390×844 viewport sizes.
+
 ## Desktop development
 
 ```bat
@@ -132,8 +146,8 @@ A real device test and localization proof of concept must pass before claiming a
 
 The separate `/slam-lab.html` entry point is a **work-in-progress phone experiment**, not an approved replacement for the working camera studio. The engine binary is loaded from 8th Wall's official CDN when the experiment page opens. The binary is not bundled into this Git repository.
 
-Test on a real Android phone with HTTPS: open `https://<your-host>/slam-lab.html`, tap **Start 8th Wall SLAM test**, grant camera permission, and aim at a well-lit floor with visible texture. When tracking reads **NORMAL**, choose **Place sofa on floor**, then slowly move left/right and record whether it remains stable. You can export a JSON log of tracking status, camera poses and manual placement coordinates. **The log does not include camera images.**
+Test on a real Android phone with HTTPS: open `https://<your-host>/slam-lab.html`, tap **Start 8th Wall SLAM test**, grant camera permission, and aim at a well-lit floor with visible texture. When tracking reads **NORMAL**, choose **Place selected furniture**, then slowly move left/right and record whether it remains stable. You can export a JSON log of tracking status, camera poses and manual placement coordinates. **The log does not include camera images.**
 
-The tracked demonstration assumes a single estimated horizontal ground plane and uses provisional sofa dimensions. It does not automatically map walls, reconstruct the complete room, guarantee metric scale or restore furniture across browser sessions.
+The tracking experiment assumes a single estimated horizontal ground plane and uses approximate source-model sizes for the furniture catalog. It does not automatically map walls, reconstruct the complete room, guarantee metric scale or restore furniture across browser sessions.
 
 Build the two Vite HTML entry points with `npm run build`. Use `node scripts/smoke-slam-lab.mjs` for a desktop mocked-engine smoke test; it does NOT prove actual tracking. See `docs/REAL_AR_ARCHITECTURE.md` and the official source https://github.com/8thwall/threejs-world-effects-example.

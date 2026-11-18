@@ -60,3 +60,15 @@ The current Camera Studio renders a 3D sofa over a video frame, but it does not 
 
 
 - **Filipino heritage source examples:** Select Filipino Gallinera Chair or Gallinera Table under **Filipino styles**. Both models are explicit Philippine furniture references from Poly Haven CC0; approximate source-model dimensions are available. Compare on-screen apparent scale with a physical reference before claiming real-world size.
+
+## Mobile object-editing test (v0.6)
+
+Once a piece is placed, the compact bottom toolbar must show **Rotate -15°**, **Rotate +15°**, **Move selected to target**, **Remove selected**, and **Undo last**. Use **Change furniture** to open the complete model catalog and advanced controls. Buttons inside either panel should be scrollable and accessible on a small phone.
+
+1. Place one wooden stool on a floor target after tracking reports NORMAL.
+2. Tap the stool to select it; an aqua floor selection circle should indicate the selected object.
+3. Tap **Rotate +15°**, then **Rotate -15°**; only the yaw/orientation should change.
+4. Press and drag the stool sideways on the camera view. It should move on the same tracked floor, without changing vertical size or stretching geometry.
+5. Aim at a different floor position, hold until the target turns green, and tap **Move selected to target**. Confirm that only the selected object moves.
+6. Add a second piece; use **Select next** to cycle between objects. Test **Remove selected** and **Undo last** separately.
+7. If tracking is lost, moving to a new point must be disabled. **No physical dimension or metric accuracy is certified by these UI tests.**

@@ -14,6 +14,14 @@ const start = el('start-tracking')
 const place = el('place-furniture')
 const rotateLeft = el('rotate-left')
 const rotateRight = el('rotate-right')
+const moveSelectedButton = el('move-selected')
+const removeSelectedButton = el('remove-selected')
+const selectNextButton = el('select-next')
+const quickRotateLeft = el('quick-rotate-left')
+const quickRotateRight = el('quick-rotate-right')
+const quickMove = el('quick-move')
+const quickRemove = el('quick-remove')
+const quickSelectNext = el('quick-select-next')
 const clear = el('reset-sofa')
 const exportLog = el('export-log')
 const quickPlace = el('quick-place')
@@ -21,6 +29,7 @@ const quickUndo = el('quick-undo')
 const optionsPanel = el('lab-controls')
 const quickBar = el('lab-quickbar')
 const floorRay = new THREE.Raycaster()
+const furnitureRay = new THREE.Raycaster()
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
 const hitPoint = new THREE.Vector3()
 const screenCenter = new THREE.Vector2(0, 0)
@@ -37,6 +46,8 @@ const state = {
   selectedId: 'wooden-stool',
   modelTemplates: new Map(),
   placed: [],
+  selectedPlaced: null,
+  selectionRing: null,
   reticle: null,
   placementPoint: null,
   aimTracker: createFloorAimTracker(),
@@ -93,18 +104,46 @@ function updatePlacementAvailability() {
     state.placed.length < 8
   place.disabled = !enabled
   quickPlace.disabled = !enabled
+  const canMove = state.running && state.tracking === 'NORMAL' &&
+    Boolean(state.placementPoint) && Boolean(state.selectedPlaced)
+  moveSelectedButton.disabled = !canMove
+  quickMove.disabled = !canMove
 }
 
 function updatePlacedControls() {
   const total = state.placed.length
+  if (state.selectedPlaced && !state.placed.includes(state.selectedPlaced)) {
+    state.selectedPlaced = null
+  }
+  if (total && !state.selectedPlaced) state.selectedPlaced = state.placed.at(-1)
   const has = total > 0
+  const editing = state.selectedPlaced
   clear.disabled = !has
   quickUndo.disabled = !has
-  rotateLeft.disabled = !has
-  rotateRight.disabled = !has
+  for (const control of [rotateLeft, rotateRight, quickRotateLeft, quickRotateRight,
+    removeSelectedButton, quickRemove]) control.disabled = !editing
+  selectNextButton.disabled = total < 2
+  quickSelectNext.disabled = total < 2
+  const description = editing
+    ? 'Editing: ' + catalogById[editing.productId].name
+    : 'No furniture selected for editing'
+  el('full-editing').textContent = description
+  el('quick-editing').textContent = description
   el('sofa-state').textContent = has
-    ? total + ' placed · last: ' + catalogById[state.placed.at(-1).productId].name
+    ? total + ' placed · selected: ' + catalogById[editing.productId].name
     : 'None placed'
+  if (state.selectionRing) {
+    state.selectionRing.visible = Boolean(editing)
+    if (editing) state.selectionRing.position.copy(editing.mesh.position).add(new THREE.Vector3(0, 0.018, 0))
+  }
+  updatePlacementAvailability()
+}
+
+function selectPlaced(item) {
+  if (!state.placed.includes(item)) return
+  state.selectedPlaced = item
+  updatePlacedControls()
+  log('furniture-selected', { productId: item.productId })
 }
 
 async function prepareAsset(id) {
@@ -224,23 +263,89 @@ function removeLast() {
   const last = state.placed.pop()
   if (!last) return
   if (state.scene) state.scene.remove(last.mesh)
+  if (state.selectedPlaced === last) state.selectedPlaced = null
   updatePlacedControls()
-  updatePlacementAvailability()
-  log('furniture-removed', { productId: last.productId })
+  log('furniture-removed', { productId: last.productId, source: 'undo' })
+}
+
+function removeSelected() {
+  const chosen = state.selectedPlaced
+  if (!chosen) return
+  state.placed = state.placed.filter(item => item !== chosen)
+  if (state.scene) state.scene.remove(chosen.mesh)
+  state.selectedPlaced = null
+  updatePlacedControls()
+  log('furniture-removed', { productId: chosen.productId, source: 'selected' })
 }
 
 function clearPlaced() {
   if (state.scene) for (const item of state.placed) state.scene.remove(item.mesh)
   state.placed = []
+  state.selectedPlaced = null
   updatePlacedControls()
-  updatePlacementAvailability()
 }
 
-function rotateLast(direction) {
-  const last = state.placed.at(-1)
-  if (!last) return
-  last.mesh.rotation.y += direction * Math.PI / 12
-  log('furniture-rotated', { productId: last.productId, yawRadians: last.mesh.rotation.y })
+function rotateSelected(direction) {
+  const chosen = state.selectedPlaced
+  if (!chosen) return
+  chosen.mesh.rotation.y += direction * Math.PI / 12
+  log('furniture-rotated', {
+    productId: chosen.productId, yawRadians: chosen.mesh.rotation.y,
+  })
+}
+
+function selectNextPlaced() {
+  if (state.placed.length < 2) return
+  const current = state.placed.indexOf(state.selectedPlaced)
+  selectPlaced(state.placed[(current + 1) % state.placed.length])
+}
+
+function moveSelectedToTarget() {
+  const chosen = state.selectedPlaced
+  const point = state.placementPoint
+  if (!chosen || !point || !state.running || state.tracking !== 'NORMAL') return
+  chosen.mesh.position.copy(point)
+  chosen.point = [fmt(point.x), fmt(point.y), fmt(point.z)]
+  updatePlacedControls()
+  log('furniture-moved', { method: 'steady-target', productId: chosen.productId, xyz: chosen.point })
+}
+
+function floorAtScreen(clientX, clientY) {
+  if (!state.camera || !state.running || state.tracking !== 'NORMAL') return null
+  const rect = liveCanvas.getBoundingClientRect()
+  if (!rect.width || !rect.height) return null
+  const ndc = new THREE.Vector2(
+    ((clientX - rect.left) / rect.width) * 2 - 1,
+    -((clientY - rect.top) / rect.height) * 2 + 1,
+  )
+  state.camera.updateMatrixWorld(true)
+  furnitureRay.setFromCamera(ndc, state.camera)
+  const point = new THREE.Vector3()
+  if (!furnitureRay.ray.intersectPlane(floorPlane, point)) return null
+  const distance = point.distanceTo(state.camera.position)
+  return distance >= 0.25 && distance <= 8 ? point : null
+}
+
+function furnitureAtScreen(clientX, clientY) {
+  if (!state.camera || state.placed.length === 0) return null
+  const rect = liveCanvas.getBoundingClientRect()
+  if (!rect.width || !rect.height) return null
+  const ndc = new THREE.Vector2(
+    ((clientX - rect.left) / rect.width) * 2 - 1,
+    -((clientY - rect.top) / rect.height) * 2 + 1,
+  )
+  state.camera.updateMatrixWorld(true)
+  furnitureRay.setFromCamera(ndc, state.camera)
+  const intersections = furnitureRay.intersectObjects(state.placed.map(item => item.mesh), true)
+  for (const hit of intersections) {
+    let current = hit.object
+    while (current) {
+      const picked = state.placed.find(item => item.mesh === current)
+      if (picked) return picked
+      current = current.parent
+    }
+  }
+  return null
 }
 
 function setCompact(compact) {
@@ -300,7 +405,14 @@ function createScenePipeline() {
       reticle.visible = false
       scene.add(reticle)
       state.reticle = reticle
-      updatePlacementAvailability()
+      const selectionRing = new THREE.Mesh(
+        new THREE.RingGeometry(0.115, 0.13, 32).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: 0x40d9ff, depthTest: false }),
+      )
+      selectionRing.visible = false
+      scene.add(selectionRing)
+      state.selectionRing = selectionRing
+      updatePlacedControls()
       display('Camera initializing', 'Waiting for tracked camera frames')
       log('engine-scene-started')
     },
@@ -441,7 +553,9 @@ place.addEventListener('click', () => {
   const mesh = selected.clone(true)
   mesh.position.copy(point)
   state.scene.add(mesh)
-  state.placed.push({ mesh, productId: state.selectedId, point: [fmt(point.x), fmt(point.y), fmt(point.z)] })
+  const placed = { mesh, productId: state.selectedId, point: [fmt(point.x), fmt(point.y), fmt(point.z)] }
+  state.placed.push(placed)
+  state.selectedPlaced = placed
   updatePlacedControls()
   updatePlacementAvailability()
   setCompact(true)
@@ -453,26 +567,83 @@ place.addEventListener('click', () => {
   })
 })
 clear.addEventListener('click', removeLast)
-rotateLeft.addEventListener('click', () => rotateLast(-1))
-rotateRight.addEventListener('click', () => rotateLast(1))
+rotateLeft.addEventListener('click', () => rotateSelected(-1))
+rotateRight.addEventListener('click', () => rotateSelected(1))
+quickRotateLeft.addEventListener('click', () => rotateSelected(-1))
+quickRotateRight.addEventListener('click', () => rotateSelected(1))
+moveSelectedButton.addEventListener('click', moveSelectedToTarget)
+quickMove.addEventListener('click', moveSelectedToTarget)
+removeSelectedButton.addEventListener('click', removeSelected)
+quickRemove.addEventListener('click', removeSelected)
+selectNextButton.addEventListener('click', selectNextPlaced)
+quickSelectNext.addEventListener('click', selectNextPlaced)
 quickPlace.addEventListener('click', beginQuickPlacement)
 quickUndo.addEventListener('click', removeLast)
 el('collapse-panel').addEventListener('click', () => setCompact(true))
 el('show-options').addEventListener('click', () => setCompact(false))
 
-// Tapping an unobstructed portion of the real camera is an additional
-// one-tap placement gesture; swipes used for scanning never trigger placement.
+// Camera gestures: tap empty floor to place, tap furniture to select,
+// drag selected furniture along the real estimated ground plane.
+// We never change mesh scale when editing positions, and refuse edits if
+// SLAM tracking is lost or the floor intersection is out of range.
 const liveCanvas = el('camerafeed')
 let pressPosition = null
 liveCanvas.addEventListener('pointerdown', (event) => {
-  pressPosition = { id: event.pointerId, x: event.clientX, y: event.clientY, at: performance.now() }
+  if (!state.running) return
+  const item = furnitureAtScreen(event.clientX, event.clientY)
+  const anchor = item && floorAtScreen(event.clientX, event.clientY)
+  const dragOffset = item && anchor
+    ? item.mesh.position.clone().sub(anchor)
+    : null
+  pressPosition = {
+    id: event.pointerId, x: event.clientX, y: event.clientY,
+    at: performance.now(), item, dragOffset, dragging: false,
+  }
+  // Capture this single touch for accurate editing, not camera scanning.
+  if (item && liveCanvas.setPointerCapture) {
+    try { liveCanvas.setPointerCapture(event.pointerId) } catch { /* synthetic events */ }
+  }
+})
+liveCanvas.addEventListener('pointermove', (event) => {
+  const press = pressPosition
+  if (!press || press.id !== event.pointerId || !press.item) return
+  const moved = Math.hypot(event.clientX - press.x, event.clientY - press.y)
+  if (!press.dragging && moved <= 12) return
+  const point = floorAtScreen(event.clientX, event.clientY)
+  if (!point || !press.dragOffset) return
+  press.dragging = true
+  const next = point.add(press.dragOffset)
+  // Preserve the original floor height, and move only in ground-plane axes.
+  press.item.mesh.position.x = next.x
+  press.item.mesh.position.z = next.z
+  press.item.mesh.position.y = 0
+  if (state.selectedPlaced !== press.item) selectPlaced(press.item)
+  if (state.selectionRing) {
+    state.selectionRing.position.set(next.x, 0.018, next.z)
+  }
 })
 liveCanvas.addEventListener('pointerup', (event) => {
-  const from = pressPosition
+  const press = pressPosition
   pressPosition = null
-  if (!from || from.id !== event.pointerId || !state.running) return
-  if (Math.hypot(event.clientX - from.x, event.clientY - from.y) > 16) return
-  if (performance.now() - from.at > 325) return
+  if (!press || press.id !== event.pointerId || !state.running) return
+  if (press.item) {
+    if (press.dragging) {
+      press.item.point = [
+        fmt(press.item.mesh.position.x),
+        fmt(press.item.mesh.position.y),
+        fmt(press.item.mesh.position.z),
+      ]
+      log('furniture-moved', {
+        method: 'touch-drag', productId: press.item.productId,
+        xyz: press.item.point,
+      })
+    } else if (Math.hypot(event.clientX - press.x, event.clientY - press.y) <= 16) {
+      selectPlaced(press.item)
+    }
+    return
+  }
+  if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > 16) return
+  if (performance.now() - press.at > 325) return
   beginQuickPlacement()
 })
 liveCanvas.addEventListener('pointercancel', () => { pressPosition = null })
