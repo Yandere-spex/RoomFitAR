@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import { createFloorAimTracker } from './floorAimTracker'
 import { arPreviewProducts, createFurnitureAsset, hasSourceMetricDimensions } from '../ar/furnitureModels'
 import { catalogById } from '../domain/catalog'
 import './slam-lab.css'
@@ -26,6 +25,10 @@ const clear = el('reset-sofa')
 const exportLog = el('export-log')
 const quickPlace = el('quick-place')
 const quickUndo = el('quick-undo')
+const doneView = el('done-view')
+const doneViewFull = el('done-view-full')
+const viewBar = el('lab-viewbar')
+const resumeEdit = el('resume-edit')
 const optionsPanel = el('lab-controls')
 const quickBar = el('lab-quickbar')
 const floorRay = new THREE.Raycaster()
@@ -50,8 +53,8 @@ const state = {
   selectionRing: null,
   reticle: null,
   placementPoint: null,
-  aimTracker: createFloorAimTracker(),
   compact: false,
+  viewing: false,
   origin: null,
   previous: null,
   cumulative: 0,
@@ -74,7 +77,7 @@ const message = (text) => {
     box.hidden = false
     box.textContent = text
   }
-  if (state.running && state.compact) setCompact(false)
+  if (state.running && state.compact && !state.viewing) setCompact(false)
   log('error', { text })
 }
 window.addEventListener('error', (e) => log('javascript-error', { text: e.message }))
@@ -98,13 +101,13 @@ function displayRenderedSize(id, model) {
 }
 
 function updatePlacementAvailability() {
-  const enabled = state.running && state.tracking === 'NORMAL' &&
+  const enabled = state.running && !state.viewing && state.tracking === 'NORMAL' &&
     state.modelTemplates.has(state.selectedId) &&
     state.placementPoint !== null &&
     state.placed.length < 8
   place.disabled = !enabled
   quickPlace.disabled = !enabled
-  const canMove = state.running && state.tracking === 'NORMAL' &&
+  const canMove = state.running && !state.viewing && state.tracking === 'NORMAL' &&
     Boolean(state.placementPoint) && Boolean(state.selectedPlaced)
   moveSelectedButton.disabled = !canMove
   quickMove.disabled = !canMove
@@ -122,6 +125,8 @@ function updatePlacedControls() {
   quickUndo.disabled = !has
   for (const control of [rotateLeft, rotateRight, quickRotateLeft, quickRotateRight,
     removeSelectedButton, quickRemove]) control.disabled = !editing
+  doneView.disabled = !has
+  doneViewFull.disabled = !has
   selectNextButton.disabled = total < 2
   quickSelectNext.disabled = total < 2
   const description = editing
@@ -133,7 +138,7 @@ function updatePlacedControls() {
     ? total + ' placed · selected: ' + catalogById[editing.productId].name
     : 'None placed'
   if (state.selectionRing) {
-    state.selectionRing.visible = Boolean(editing)
+    state.selectionRing.visible = Boolean(editing) && !state.viewing
     if (editing) state.selectionRing.position.copy(editing.mesh.position).add(new THREE.Vector3(0, 0.018, 0))
   }
   updatePlacementAvailability()
@@ -260,6 +265,7 @@ function buildCatalog() {
 }
 
 function removeLast() {
+  if (state.viewing) return
   const last = state.placed.pop()
   if (!last) return
   if (state.scene) state.scene.remove(last.mesh)
@@ -270,7 +276,7 @@ function removeLast() {
 
 function removeSelected() {
   const chosen = state.selectedPlaced
-  if (!chosen) return
+  if (state.viewing || !chosen) return
   state.placed = state.placed.filter(item => item !== chosen)
   if (state.scene) state.scene.remove(chosen.mesh)
   state.selectedPlaced = null
@@ -287,7 +293,7 @@ function clearPlaced() {
 
 function rotateSelected(direction) {
   const chosen = state.selectedPlaced
-  if (!chosen) return
+  if (state.viewing || !chosen) return
   chosen.mesh.rotation.y += direction * Math.PI / 12
   log('furniture-rotated', {
     productId: chosen.productId, yawRadians: chosen.mesh.rotation.y,
@@ -303,7 +309,7 @@ function selectNextPlaced() {
 function moveSelectedToTarget() {
   const chosen = state.selectedPlaced
   const point = state.placementPoint
-  if (!chosen || !point || !state.running || state.tracking !== 'NORMAL') return
+  if (state.viewing || !chosen || !point || !state.running || state.tracking !== 'NORMAL') return
   chosen.mesh.position.copy(point)
   chosen.point = [fmt(point.x), fmt(point.y), fmt(point.z)]
   updatePlacedControls()
@@ -350,9 +356,28 @@ function furnitureAtScreen(clientX, clientY) {
 
 function setCompact(compact) {
   state.compact = compact
-  optionsPanel.hidden = compact
-  quickBar.hidden = !compact
+  optionsPanel.hidden = compact || state.viewing
+  quickBar.hidden = !compact || state.viewing
+  viewBar.hidden = !state.viewing
   updatePlacementAvailability()
+}
+
+function setViewMode(viewing) {
+  if (viewing && !state.placed.length) return
+  state.viewing = viewing
+  if (state.reticle) state.reticle.visible = !viewing && Boolean(state.placementPoint)
+  if (state.selectionRing) state.selectionRing.visible = !viewing && Boolean(state.selectedPlaced)
+  if (viewing) {
+    const selected = state.selectedPlaced || state.placed.at(-1)
+    const dimensions = selected?.mesh?.userData?.modelSizeMeters
+    el('view-model-size').textContent = dimensions
+      ? 'Model: ' + dimensions.map(value => value.toFixed(2)).join(' × ') + ' m (W × H × D)'
+      : 'Model dimensions stay locked while you move the phone'
+  }
+  setCompact(true)
+  log(viewing ? 'view-mode-entered' : 'edit-mode-entered', {
+    totalPlaced: state.placed.length,
+  })
 }
 
 function beginQuickPlacement() {
@@ -424,7 +449,6 @@ function createScenePipeline() {
     onUpdate: ({ processCpuResult }) => {
       const reality = processCpuResult?.reality
       if (!reality) {
-        state.aimTracker.clear()
         state.placementPoint = null
         state.tracking = 'LIMITED'
         if (state.reticle) state.reticle.visible = false
@@ -447,21 +471,25 @@ function createScenePipeline() {
           if (range >= 0.25 && range <= 8) candidate = hitPoint
         }
       }
-      const stable = state.aimTracker.update(candidate, performance.now(), good)
-      state.placementPoint = stable ? new THREE.Vector3(stable.x, stable.y, stable.z) : null
+      // The engine estimates a shared horizontal ground plane. A valid direct
+      // ray/plane hit is immediately usable; no tap-and-hold delay is required.
+      // Editing never scales placed meshes when the camera moves or zooms.
+      state.placementPoint = candidate ? candidate.clone() : null
       if (state.reticle) {
-        state.reticle.visible = Boolean(candidate)
+        state.reticle.visible = Boolean(candidate) && !state.viewing
         if (candidate) state.reticle.position.set(candidate.x, candidate.y + 0.016, candidate.z)
-        state.reticle.material.color.setHex(stable ? 0x36edae : 0xffc45d)
+        state.reticle.material.color.setHex(0x36edae)
       }
       updatePlacementAvailability()
       display(
-        good ? (stable ? 'Floor steady · Ready to place' : (candidate ? 'Hold floor target steady…' : 'Aim at your floor'))
-          : 'Tracking ' + status,
-        good ? (stable ? 'Tap the open camera view or Place. Model scale stays locked.' :
-          'Aim at a textured floor and hold still for half a second.')
-          : 'Tracking must recover before another piece can be placed.',
-        good && Boolean(stable),
+        state.viewing
+          ? (good ? 'Viewing placed furniture' : 'Tracking ' + status + ' · view may drift')
+          : (good ? (candidate ? 'Floor detected · Tap once to place' : 'Aim at the floor') : 'Tracking ' + status),
+        state.viewing
+          ? 'Walk around the furniture; placement and size are locked. Tap Edit placement to make changes.'
+          : (good ? 'No holding needed. The floor position is estimated; verify scale with a tape.'
+            : 'Tracking must recover before floor placement.'),
+        good && Boolean(candidate),
       )
       const p = reality.position
       const now = performance.now()
@@ -482,7 +510,6 @@ function createScenePipeline() {
     onException: (error) => {
       state.tracking = 'LIMITED'
       state.placementPoint = null
-      state.aimTracker.clear()
       message('Tracking engine error: ' + (error?.message ?? String(error)))
       display('Tracking engine error', 'See technical error message')
       place.disabled = true
@@ -539,7 +566,7 @@ start.addEventListener('click', () => {
   }
 })
 place.addEventListener('click', () => {
-  if (state.tracking !== 'NORMAL' || !state.scene || !state.placementPoint) return
+  if (state.viewing || state.tracking !== 'NORMAL' || !state.scene || !state.placementPoint) return
   const selected = state.modelTemplates.get(state.selectedId)
   if (!selected) {
     message('Furniture model not loaded yet. Choose another or try again.')
@@ -579,6 +606,9 @@ selectNextButton.addEventListener('click', selectNextPlaced)
 quickSelectNext.addEventListener('click', selectNextPlaced)
 quickPlace.addEventListener('click', beginQuickPlacement)
 quickUndo.addEventListener('click', removeLast)
+doneView.addEventListener('click', () => setViewMode(true))
+doneViewFull.addEventListener('click', () => setViewMode(true))
+resumeEdit.addEventListener('click', () => setViewMode(false))
 el('collapse-panel').addEventListener('click', () => setCompact(true))
 el('show-options').addEventListener('click', () => setCompact(false))
 
@@ -589,7 +619,7 @@ el('show-options').addEventListener('click', () => setCompact(false))
 const liveCanvas = el('camerafeed')
 let pressPosition = null
 liveCanvas.addEventListener('pointerdown', (event) => {
-  if (!state.running) return
+  if (!state.running || state.viewing) return
   const item = furnitureAtScreen(event.clientX, event.clientY)
   const anchor = item && floorAtScreen(event.clientX, event.clientY)
   const dragOffset = item && anchor
@@ -625,7 +655,7 @@ liveCanvas.addEventListener('pointermove', (event) => {
 liveCanvas.addEventListener('pointerup', (event) => {
   const press = pressPosition
   pressPosition = null
-  if (!press || press.id !== event.pointerId || !state.running) return
+  if (!press || press.id !== event.pointerId || !state.running || state.viewing) return
   if (press.item) {
     if (press.dragging) {
       press.item.point = [
@@ -644,7 +674,9 @@ liveCanvas.addEventListener('pointerup', (event) => {
   }
   if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > 16) return
   if (performance.now() - press.at > 325) return
-  beginQuickPlacement()
+  // Only the first piece supports one-tap camera placement. Additional pieces
+  // require the explicit Place button, preventing accidental duplicates.
+  if (state.placed.length === 0) beginQuickPlacement()
 })
 liveCanvas.addEventListener('pointercancel', () => { pressPosition = null })
 el('recenter').addEventListener('click', () => {
@@ -653,7 +685,6 @@ el('recenter').addEventListener('click', () => {
     return
   }
   clearPlaced()
-  state.aimTracker.clear()
   state.placementPoint = null
   if (state.reticle) state.reticle.visible = false
   updatePlacementAvailability()
@@ -663,7 +694,7 @@ el('recenter').addEventListener('click', () => {
   state.cumulative = 0
   el('distance').textContent = '—'
   log('tracking-recentered')
-  display('Recenter requested', 'Aim at the floor again and wait for stable tracking.')
+  display('Recenter requested', 'Aim at the floor; the engine will estimate its position again.')
 })
 exportLog.addEventListener('click', () => {
   const record = {

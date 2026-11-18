@@ -48,16 +48,17 @@ The published application only requires the packed `public/models/polyhaven/*.gl
 
 The experimental browser SLAM screen now favors one-handed use:
 1. Select an item from the **12-piece catalog**, including two genuine Filipino Gallinera references (CC0) and two Filipino-inspired CC0 woven/rattan styles.
-2. Point at the floor, wait until the target is **green** (about 0.4 seconds of agreeing tracked ray hits).
-3. Tap **Place selected furniture** or the unobstructed live camera view. Rapid scanning swipes are ignored.
-4. After placement the catalog collapses automatically to the compact **Place / Undo / Change furniture** bar.
-5. The most recently selected model is restored from optional local browser storage; models are loaded **only when selected** and cached in the current page.
+2. Aim the phone at the estimated floor. When tracking is **NORMAL** and a green floor target is visible, **tap once** to place the first furniture item. No additional half-second hold is required.
+3. A compact panel appears. After the object looks right, tap **Done · View from other angles** to lock editing and hide the placement target.
+4. Walk around or step farther back to inspect it. Furniture stays at its saved 3D world position with unchanged model scale. Camera perspective naturally makes distant furniture appear smaller; there is **no pinch-to-resize or fake zoom**.
+5. Tap **Edit placement** to restore rotation and positioning. To add more furniture use the explicit **Place furniture** button; blank camera taps cannot repeatedly duplicate objects.
+6. The most recently selected catalog model is remembered locally, and textured GLBs are loaded on demand.
 
-The floor target filter detects unstable tap positions; it **does not calibrate, fix or guarantee SLAM metric scale**. Physical placement and room measurements must still be compared with a real tape measure on the target phone. No arbitrary physical resize control is introduced for tracked AR.
+The tracker estimates **one horizontal ground plane**; floor detection and meter scale depend on SLAM conditions. Absolute-scale mode estimates meters, but real-world sizes and placement drift still require comparison with a tape or laser measure. These changes improve the workflow; they **do not certify physical measurement accuracy**.
 
 Tests:
 ```powershell
-node scripts/test-floor-aim.mjs
+node scripts/smoke-mobile-edit.mjs
 node scripts/smoke-quick-place.mjs
 node scripts/smoke-furniture-assets.mjs
 ```
@@ -70,7 +71,7 @@ The quick placement test uses a mock camera pose, **not** the actual device's SL
 - In compact view, **Rotate -15°**, **Rotate +15°**, **Move selected to target**, **Remove selected**, **Undo last**, and **Select next** are directly available.
 - Tap a previously placed 3D model to select it, or press **Select next** to cycle through multiple placed models.
 - Drag a selected model directly in the camera view to edit its horizontal position on the estimated ground plane. This interaction requires NORMAL SLAM tracking and a valid floor intersection; no arbitrary 3D scale or height adjustments are made.
-- For more deliberate relocation, aim at the center floor target, hold until it is stable/green, then tap **Move selected to target**.
+- To reposition, aim at the green floor target and tap **Move selected to target**; a holding delay is no longer required when tracking reports NORMAL.
 - An aqua outline highlights the selected furniture floor position.
 - Both compact and full editing controls are available on narrow mobile viewports; large panels scroll internally so buttons remain reachable while the camera is visible.
 - Both camera placement and existing objects remain limited by the accuracy and drift of the device's visual tracking. The geometry and UI can be verified by automated tests; **correct real-world physical location and absolute scale still need on-device testing**.

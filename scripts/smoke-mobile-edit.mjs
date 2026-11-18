@@ -59,7 +59,10 @@ try {
         await page.waitForTimeout(58)
       }
     }
-    await steady()
+    // No 0.4-second target hold: the first valid tracked frame enables placement.
+    await page.evaluate(() => window.__fakeFrame())
+    assert.equal(await page.locator('#place-furniture').isEnabled(), true,
+      'immediate floor hit should enable placement without waiting')
     await page.locator('#place-furniture').click()
     assert.equal(await page.locator('#lab-quickbar').isVisible(), true, 'compact bar should be visible')
     const quick = page.locator('#lab-quickbar')
@@ -134,6 +137,31 @@ try {
       throw Error('Unable to find clickable world-space mesh pixels for furniture touch selection')
     }
 
+    // Done switches to camera inspection: no tap-to-place, drag, rotation
+    // or world-space rescaling while moving the phone around the object.
+    const locked = await meshInfo()
+    await page.locator('#done-view').click()
+    assert.equal(await page.locator('#lab-quickbar').isVisible(), false)
+    assert.equal(await page.locator('#lab-viewbar').isVisible(), true)
+    assert.equal(await page.locator('#lab-controls').isVisible(), false)
+    await page.evaluate(() => {
+      window.__mockCamera.position.set(.35, 1.8, 3.1)
+      window.__mockCamera.lookAt(.65, 0, 0)
+      window.__mockCamera.updateMatrixWorld(true)
+      window.__fakeFrame()
+      const canvas = document.getElementById('camerafeed')
+      canvas.dispatchEvent(new PointerEvent('pointerdown',
+        { bubbles: true, pointerId: 15, clientX: 80, clientY: 180 }))
+      canvas.dispatchEvent(new PointerEvent('pointerup',
+        { bubbles: true, pointerId: 15, clientX: 80, clientY: 180 }))
+    })
+    assert.deepEqual(await meshInfo(), locked,
+      'camera walkaround must preserve furniture world position, yaw and size')
+    assert.match(await page.locator('#sofa-state').textContent(), /1 placed/,
+      'camera inspection should not create extra objects')
+    await page.locator('#resume-edit').click()
+    assert.equal(await page.locator('#lab-viewbar').isVisible(), false)
+    assert.equal(await page.locator('#lab-quickbar').isVisible(), true)
     // Switch from compact to full menu and verify all controls can be reached
     // on narrow/short screens, including actions below the initial scroll.
     await page.locator('#show-options').click()
@@ -158,7 +186,7 @@ try {
     assert.match(await page.locator('#sofa-state').textContent(), /None placed/)
     assert.deepEqual(pageErrors, [], 'runtime errors for ' + width + 'px')
     console.log('RoomFit mobile UI:', width + 'x' + height,
-      'quick rotate, move, touch drag, remove, all accessible controls OK')
+      'quick rotate, move, touch drag, Done walkaround, edit resume and accessible controls OK')
     await context.close()
   }
 } finally {

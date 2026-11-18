@@ -24,7 +24,7 @@
       <div id="failure" role="alert" hidden></div>
     </div>
     <section class="lab-controls" id="lab-controls" hidden>
-      <p>Select a model, hold the camera still until the green target appears, then tap <strong>Place</strong> or the clear camera area. No manual scale changes.</p>
+      <p>Choose furniture, aim at the detected floor, and tap <strong>Place</strong> once. No holding or manual resizing. When it looks right, press <strong>Done</strong> and walk around to inspect.</p>
       <div class="lab-catalog-heading">
         <strong>Furniture <span id="catalog-count">12 pieces</span></strong>
         <span id="asset-status" aria-live="polite">Preparing model…</span>
@@ -39,6 +39,7 @@
       </div>
       <div class="lab-grid">
         <button id="place-furniture" disabled>Place selected furniture</button>
+        <button id="done-view-full" type="button" disabled>Done · View from other angles</button>
         <button id="rotate-left" disabled>↶ Rotate selected -15°</button>
         <button id="rotate-right" disabled>↷ Rotate selected +15°</button>
         <button id="move-selected" disabled>Move selected to target</button>
@@ -53,6 +54,7 @@
       <small>Floor plane and world scale are SLAM estimates. Compare a known physical dimension with a tape measure. Imported model dimensions follow the original asset metadata and may differ from actual products. The log does not contain camera frames.</small>
     </section>
     <aside id="lab-quickbar" class="lab-quickbar" hidden aria-label="Quick AR placement controls">
+      <button type="button" id="done-view" class="lab-done" disabled>Done · View from other angles</button>
       <div class="lab-quick-heading"><strong id="quick-selected">Compact Wooden Stool</strong>
         <button type="button" id="show-options">Change furniture</button>
       </div>
@@ -67,7 +69,15 @@
         <button type="button" id="quick-remove" disabled>Remove selected</button>
         <button type="button" id="quick-undo" disabled>Undo last</button>
       </div>
-      <small>Tap furniture to select, then drag it on the floor to reposition. Or aim at a steady green target and tap Move selected. Rotation never changes physical size.</small>
+      <small>Furniture stays at its tracked floor coordinates. Press Done to stop editing and move the phone around it.</small>
+    </aside>
+    <aside id="lab-viewbar" class="lab-viewbar" hidden aria-label="Inspect placed furniture">
+      <div class="lab-view-title">
+        <strong>Viewing furniture in your room</strong>
+        <small id="view-model-size">Model size stays fixed when you move the phone.</small>
+      </div>
+      <button type="button" id="resume-edit">Edit placement</button>
+      <small>Walk closer or farther and look from different angles. Zooming never changes the model dimensions. World scale is an AR estimate until tape-verified.</small>
     </aside>
     <footer><a href="https://8thwall.org/docs/engine/license" target="_blank" rel="noreferrer">8th Wall binary license</a> · Powered by 8th Wall SLAM · <a href="/">Return to working camera version</a></footer>
   </main>

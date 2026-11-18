@@ -52,9 +52,9 @@ The current Camera Studio renders a 3D sofa over a video frame, but it does not 
 
 ## Fast placement check (new)
 - Choose **Woven Papasan Chair** or **Woven Lounge Rocker** in the **Filipino styles** filter to try the new CC0 woven designs. These are *Filipino-inspired aesthetics*, not proven Philippine-origin furniture; source-model sizes are displayed.
-- When floor-tracking status is NORMAL, the target should be **amber** during movement and **green** after the phone aims steadily at a fixed floor spot for about 0.4 s. Green does NOT guarantee absolute metric accuracy.
-- Tap **Place selected furniture** or an unoccupied camera area while it is green; a scanning swipe should never place an object.
-- After placement, confirm the **compact Place / Undo / Change furniture bar** appears so the real room is easier to see.
+- When floor-tracking status is NORMAL and the floor intersection is valid, the target becomes **green immediately**. No holding delay is needed. Green does not certify absolute meter scale.
+- Tap **Place selected furniture** or tap an unoccupied camera area once to place the first object. Further furniture requires the explicit Place button; scanning swipes never add objects.
+- After placement, tap **Done · View from other angles**. The controls and target disappear; walking the camera around should leave the furniture at its prior world position.
 - Tap **Undo last** and **Change furniture** to verify you can recover without reopening the camera.
 - Compare an actual known-length object in the room with the visual furniture size. If there is drift, wrong scale or objects floating, record the problem before making any purchase decision.
 
@@ -69,6 +69,15 @@ Once a piece is placed, the compact bottom toolbar must show **Rotate -15°**, *
 2. Tap the stool to select it; an aqua floor selection circle should indicate the selected object.
 3. Tap **Rotate +15°**, then **Rotate -15°**; only the yaw/orientation should change.
 4. Press and drag the stool sideways on the camera view. It should move on the same tracked floor, without changing vertical size or stretching geometry.
-5. Aim at a different floor position, hold until the target turns green, and tap **Move selected to target**. Confirm that only the selected object moves.
+5. Aim at a different valid floor position and tap **Move selected to target**. No holding is required. Confirm that only the selected object moves.
 6. Add a second piece; use **Select next** to cycle between objects. Test **Remove selected** and **Undo last** separately.
 7. If tracking is lost, moving to a new point must be disabled. **No physical dimension or metric accuracy is certified by these UI tests.**
+
+## Done / camera walkaround test (v0.7)
+
+1. Choose a chair or stool. With tracking NORMAL, aim the green target at the estimated floor and tap Place **once** (no hold).
+2. Press **Done · View from other angles** in the compact bottom panel. This ends placement/edit gestures without ending camera tracking.
+3. Walk left/right, stand farther back and inspect from another viewpoint. The virtual object should stay at the same world-space floor coordinates; its apparent screen size changes naturally with perspective. The app must not alter its actual mesh size or yaw automatically.
+4. While viewing, tapping, dragging and repeated camera taps must not create, rotate or move furniture. The reticle and selection marker must remain hidden.
+5. Tap **Edit placement** to recover rotation, reposition and optional explicit additional placement.
+6. Compare the physical appearance to a tape-measured reference. **Passing these controls does not verify that SLAM scale or anchoring is accurate on the phone.** Do not trust pinch zoom to establish room dimensions.
