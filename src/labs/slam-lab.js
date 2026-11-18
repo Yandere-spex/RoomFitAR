@@ -13,6 +13,7 @@ const place = el('place-sofa')
 const clear = el('reset-sofa')
 const exportLog = el('export-log')
 const errorBox = el('failure')
+const liveErrorBox = el('failure-live')
 const engineLog = []
 const state = {
   running: false,
@@ -41,8 +42,10 @@ const display = (status, description, good = false) => {
   el('tracking-dot').classList.toggle('good', good)
 }
 const message = (text) => {
-  errorBox.hidden = false
-  errorBox.textContent = text
+  for (const box of [errorBox, liveErrorBox]) {
+    box.hidden = false
+    box.textContent = text
+  }
   log('error', { text })
 }
 window.addEventListener('error', (e) => log('javascript-error', { text: e.message }))
@@ -179,6 +182,7 @@ start.addEventListener('click', () => {
     return
   }
   errorBox.hidden = true
+  liveErrorBox.hidden = true
   try {
     start.disabled = true
     window.XR8.XrController.configure({
@@ -195,9 +199,12 @@ start.addEventListener('click', () => {
         ? [window.XRExtras.FullWindowCanvas.pipelineModule()] : []),
       ...(window.XRExtras?.RuntimeError?.pipelineModule
         ? [window.XRExtras.RuntimeError.pipelineModule()] : []),
+      ...(window.XRExtras?.Loading?.pipelineModule
+        ? [window.XRExtras.Loading.pipelineModule()] : []),
       createScenePipeline(),
     ])
-    window.XR8.run({ canvas: el('camerafeed') })
+    const mobileDevice = window.XR8.XrConfig?.device?.().MOBILE
+    window.XR8.run({ canvas: el('camerafeed'), ...(mobileDevice ? { allowedDevices: mobileDevice } : {}) })
     state.running = true
     el('lab-instructions').hidden = true
     el('lab-controls').hidden = false
@@ -238,6 +245,23 @@ clear.addEventListener('click', () => {
   el('sofa-state').textContent = 'Not placed'
   log('sofa-removed')
 })
+el('recenter').addEventListener('click', () => {
+  if (!state.running || !window.XR8?.XrController?.recenter) {
+    message('Recenter is not available until the tracking engine has started.')
+    return
+  }
+  if (state.furniture && state.scene) state.scene.remove(state.furniture)
+  state.furniture = null
+  clear.disabled = true
+  el('sofa-state').textContent = 'Not placed (recentered)'
+  window.XR8.XrController.recenter()
+  state.origin = null
+  state.previous = null
+  state.cumulative = 0
+  el('distance').textContent = '—'
+  log('tracking-recentered')
+  display('Recenter requested', 'Aim at the floor again and wait for stable tracking.')
+})
 exportLog.addEventListener('click', () => {
   const record = {
     experiment: 'RoomFit 8th Wall SLAM real-device compatibility',
@@ -254,6 +278,9 @@ exportLog.addEventListener('click', () => {
   anchor.download = 'roomfit-slam-test.json'
   anchor.click()
   setTimeout(() => URL.revokeObjectURL(url), 2000)
+})
+window.addEventListener('pagehide', () => {
+  if (state.running && window.XR8?.stop) window.XR8.stop()
 })
 if (window.XR8) initEngine()
 else window.addEventListener('xrloaded', initEngine, { once: true })

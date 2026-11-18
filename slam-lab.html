@@ -28,10 +28,12 @@
       <div class="lab-grid">
         <button id="place-sofa" disabled>Place sofa on floor</button>
         <button id="reset-sofa" disabled>Remove sofa</button>
+        <button id="recenter" type="button">Recenter tracking</button>
         <button id="export-log">Export tracking log</button>
       </div>
       <div class="lab-metrics"><span>Camera traveled: <b id="distance">—</b></span><span>Sofa: <b id="sofa-state">Not placed</b></span></div>
-      <small>SLAM provides an estimated single horizontal plane (Y=0); not actual room walls. Metric calibration and physical position are unverified. No camera images are saved in the log.</small>
+      <div id="failure-live" role="alert" hidden></div>
+      <small>SLAM provides an estimated single horizontal plane (Y=0), not measured room walls. The scale requires forward/back phone movement and verification. Physical accuracy is unverified. No camera images are saved in the log.</small>
     </section>
     <footer><a href="https://8thwall.org/docs/engine/license" target="_blank" rel="noreferrer">8th Wall binary license</a> · Powered by 8th Wall SLAM · <a href="/">Return to working camera version</a></footer>
   </main>

@@ -27,6 +27,10 @@ The application opens into the camera-first flow. On Android phones that support
 
 **Important:** Do not assume saved Digital Draft coordinates are physical spatial anchors. WebXR virtual furniture currently exists only within its active AR session.
 
+## Experimental browser SLAM test (separate from the camera filter)
+
+A new **SLAM test page** is available at `/slam-lab.html`, linked from the camera-first home screen. It uses the 8th Wall Distributed Engine Binary (loaded from its public CDN under its separate binary license), a textured sofa, an estimated ground plane and world-tracking status. This is a proof of concept: **no physical device tracking, floor anchoring or absolute-scale accuracy has been confirmed yet**. See `docs/SLAM_TEST_PROTOCOL.md` for the procedure and acceptance gates. Working Camera Furniture Studio remains unchanged at the home page. New development continues on `main`.
+
 ## Desktop development
 
 ```bat

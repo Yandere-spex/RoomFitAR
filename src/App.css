@@ -137,3 +137,8 @@
 
 .xr-session-error{background:#5e3028b9;border:1px solid #fac7bb80;border-radius:9px;padding:12px;color:#fff4ef!important;text-align:left}
 .xr-fallback-btn{background:#f2f9eb!important;color:#245841!important;margin:2px 0 5px!important}
+
+.camera-experiment{border-color:#b9ddc2;background:#f1f9f2}
+.camera-test-link{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 14px;min-height:42px;border-radius:9px;background:#267761;border:1px solid #267761;color:#fff;text-decoration:none;font-size:11px;font-weight:800;flex-shrink:0;white-space:nowrap}
+.camera-test-link:hover{background:#1a604c}
+@media(max-width:580px){.camera-test-link{width:100%}}

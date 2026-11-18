@@ -30,7 +30,10 @@ try {
   await page.route(/cdn\.jsdelivr\.net\/npm\/@8thwall\//, route =>
     route.fulfill({ status: 200, contentType: 'text/javascript', body: '' }))
   const url = process.env.ROOMFIT_TEST_URL ?? 'http://127.0.0.1:5173/'
-  await page.goto(new URL('slam-lab.html', url).toString(), { waitUntil: 'networkidle' })
+  await page.goto(url, { waitUntil: 'networkidle' })
+  await page.getByRole('link', { name: /Test SLAM Tracking/i }).waitFor()
+  await page.getByRole('link', { name: /Test SLAM Tracking/i }).click()
+  await page.waitForURL(/slam-lab\.html/)
   await page.getByRole('heading', { name: /Test furniture that stays in the room/i }).waitFor()
   const start = page.getByRole('button', { name: 'Start 8th Wall SLAM test' })
   assert.equal(await start.isEnabled(), true)
@@ -47,7 +50,6 @@ try {
   assert.ok(info.modules.includes('roomfit-slam-test'))
   await page.getByRole('button', { name: 'Place sofa on floor' }).waitFor()
   assert.equal(await page.getByRole('button', { name: 'Place sofa on floor' }).isEnabled(), false)
-  await page.screenshot({ path: 'scripts/mobile-slam-lab-shell.png', fullPage: true })
   assert.deepEqual(errors, [])
   console.log('RoomFit SLAM lab: separate page, engine configuration, UI guard and no script errors passed (SDK mocked; real tracking not tested).')
 } finally { await browser.close() }

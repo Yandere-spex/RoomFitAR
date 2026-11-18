@@ -103,6 +103,14 @@ export default function CameraHome({ capabilities, onLaunchAR, onOpenStudio, onO
           <p className="camera-footnote"><ShieldCheck size={15}/> Furniture Camera is an untracked visual composition tool, not physically anchored AR. *Measured floor points require a supported tracked AR session. This prototype does not upload camera frames.</p>
         </div>
       </section>
+      <section className="camera-next camera-experiment">
+        <div>
+          <span className="camera-eyebrow">EXPERIMENTAL · NOT YET DEVICE-VALIDATED</span>
+          <h3>Test real-world sofa anchoring (SLAM)</h3>
+          <p>This separate 8th Wall tracking experiment attempts to recognize a floor and keep a textured sofa at one physical point as you move your phone. It does not require WebXR, but may not run on all phones. Room measurements remain unverified.</p>
+        </div>
+        <a href="/slam-lab.html" className="camera-test-link" onClick={stopCamera}><ScanLine size={18}/> Test SLAM Tracking <ChevronRight size={16}/></a>
+      </section>
       <section className="camera-next">
         <div><span className="camera-eyebrow">ALTERNATIVE WORKSPACE</span><h3>Want to plan without the camera?</h3><p>Open Digital Draft to arrange furniture in a 3D room preview. It is not live AR or physical room recognition.</p></div>
         <button type="button" onClick={onOpenDraft}><LayoutDashboard size={18}/> Open Digital Draft <ChevronRight size={16}/></button>
