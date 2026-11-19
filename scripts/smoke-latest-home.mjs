@@ -20,7 +20,7 @@ try {
 
   // The public root must open the *newest* tracked-furniture experience,
   // not the original untracked Camera Studio.
-  await page.goto(new URL('?release=v0.7-tracked', base).href, {
+  await page.goto(new URL('?release=v0.9-friendly-ui', base).href, {
     waitUntil: 'domcontentloaded',
   })
   await page.waitForURL(/\/RoomFitAR\/slam-lab\.html(?:\?|$)/, {
@@ -33,11 +33,13 @@ try {
   assert.equal(await page.locator('#place-furniture').count(), 1)
   assert.equal(await page.locator('#done-view').count(), 1)
   assert.equal(await page.locator('#resume-edit').count(), 1)
-  await page.getByRole('link', { name: 'Open manual camera preview' }).waitFor()
+  await page.locator('#help-panel summary').click()
+  await page.getByRole('link', { name: 'Try the basic camera preview' }).waitFor()
+  await page.locator('#help-panel summary').click()
   console.log('PUBLIC ROOT: redirected to the friendly RoomFit camera, furniture + Done + editing controls present.')
 
   // Explicit fallback should NOT redirect back into the tracked experiment.
-  await page.goto(new URL('?studio=1&release=v0.7-tracked', base).href, {
+  await page.goto(new URL('?studio=1&release=v0.9-friendly-ui', base).href, {
     waitUntil: 'domcontentloaded',
   })
   assert.ok(new URL(page.url()).searchParams.has('studio'))
