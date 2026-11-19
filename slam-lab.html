@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#073629" />
-  <title>RoomFit AR v0.7 | Latest Tracked Furniture</title>
+  <title>RoomFit AR v0.8 | Floor Placement Validation</title>
   <meta name="description" content="Experimental tracked furniture and camera-pose test. Requires camera permission and suitable browser." />
   <!-- Official unmodified engine, loaded through its published CDN distribution. -->
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
@@ -14,17 +14,17 @@
 <body>
   <canvas id="camerafeed"></canvas>
   <main id="lab-overlay">
-    <header class="lab-header"><a href="./?studio=1" aria-label="Open manual camera preview">← Manual preview</a><span>RoomFit v0.7 · tracked AR test</span></header>
+    <header class="lab-header"><a href="./?studio=1" aria-label="Open manual camera preview">← Manual preview</a><span>RoomFit v0.8 · floor validation</span></header>
     <div class="lab-status" role="status"><span id="tracking-dot"></span><strong id="tracking-status">Loading tracking engine...</strong><small id="tracking-description">Device capability is not verified yet</small></div>
     <div class="lab-instructions" id="lab-instructions">
       <h1>Test real-size furniture placement</h1>
-      <p>This version uses 8th Wall's browser SLAM engine instead of a screen-space camera filter. It is a technical experiment; floor stability, physical scale and accuracy are not yet validated.</p>
+      <p>RoomFit uses browser SLAM and now checks whether the estimated floor agrees with any reliable surface result available from the tracking engine. It is still experimental: physical scale and floor anchoring must be measured on your phone.</p>
       <button id="start-tracking" disabled>Loading engine...</button>
       <small>Start with a compact 27 cm wooden footstool rather than a large sofa. After tracking reaches NORMAL, select any furniture below and test its real-world placement. All dimensions are approximate model sizes, not certified product measurements.</small>
       <div id="failure" role="alert" hidden></div>
     </div>
     <section class="lab-controls" id="lab-controls" hidden>
-      <p>Choose furniture, aim at the detected floor, and tap <strong>Place</strong> once. No holding or manual resizing. When it looks right, press <strong>Done</strong> and walk around to inspect.</p>
+      <p>Choose furniture and aim at the floor. Place once when the target is green. Amber means the location was rejected. No holding or manual resizing. Press <strong>Done</strong> to walk around and inspect.</p>
       <div class="lab-catalog-heading">
         <strong>Furniture <span id="catalog-count">12 pieces</span></strong>
         <span id="asset-status" aria-live="polite">Preparing model…</span>
@@ -48,7 +48,7 @@
         <button id="recenter" type="button">Recenter tracking</button>
         <button id="export-log">Export tracking log</button>
       </div>
-      <div class="lab-metrics"><span>Camera traveled: <b id="distance">—</b></span><span>Objects: <b id="sofa-state">None placed</b></span></div>
+      <div class="lab-metrics"><span>Camera traveled: <b id="distance">—</b></span><span>Objects: <b id="sofa-state">None placed</b></span><span>Floor: <b id="floor-quality">Not yet checked</b></span></div>
       <div class="lab-edit-hint"><strong id="full-editing">No furniture selected for editing</strong><button type="button" id="select-next" disabled>Select another</button></div>
       <div id="failure-live" role="alert" hidden></div>
       <small>Floor plane and world scale are SLAM estimates. Compare a known physical dimension with a tape measure. Imported model dimensions follow the original asset metadata and may differ from actual products. The log does not contain camera frames.</small>

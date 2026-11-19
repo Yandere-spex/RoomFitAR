@@ -81,3 +81,12 @@ Once a piece is placed, the compact bottom toolbar must show **Rotate -15°**, *
 4. While viewing, tapping, dragging and repeated camera taps must not create, rotate or move furniture. The reticle and selection marker must remain hidden.
 5. Tap **Edit placement** to recover rotation, reposition and optional explicit additional placement.
 6. Compare the physical appearance to a tape-measured reference. **Passing these controls does not verify that SLAM scale or anchoring is accurate on the phone.** Do not trust pinch zoom to establish room dimensions.
+
+## Floor-check accuracy trial (v0.8)
+
+- Point at the real floor with even light. A **green** target means the tracked camera pose and floor intersection passed current checks; **amber** means placement is blocked.
+- In the full panel read **Floor:**. It may say `Estimated floor · size not calibrated` when the engine provides no supported surface hit; this is not a verified floor detection.
+- Move between floor and a visible table surface and record when an engine-provided surface disagrees, if the phone supports those hit-result types. Some 8th Wall engine versions only produce feature points; in that case no table-vs-floor classification is available.
+- Place the stool, press **Done**, and walk to multiple views. Compare its apparent size and anchoring with a real ruler/tape; neither this UI nor the software tests prove absolute metric accuracy.
+- Export the tracking log to inspect `floor-validation`, `floorValidation`, and camera-pose events. No camera frames are collected by the RoomFit log.
+- Full rationale and tests: `docs/ACCURACY_PHASE1.md`.

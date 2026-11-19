@@ -2,7 +2,7 @@
 
 **Browser-based furniture placement prototype with tracked AR experimentation**
 
-The **latest phone experience (v0.7)** opens from the published website at https://yandere-spex.github.io/RoomFitAR/ and immediately goes to the **8th Wall SLAM furniture tracker** (`slam-lab.html`). It includes 12 textured furniture models, one-tap estimated floor placement, rotation and repositioning, and **Done → View from other angles**. The older manual Camera Studio remains accessible at https://yandere-spex.github.io/RoomFitAR/?studio=1 as an explicitly untracked fallback. Local Vite development keeps the original React home screen for testing.
+The **latest phone experience (v0.8)** opens from the published website at https://yandere-spex.github.io/RoomFitAR/ and immediately goes to the **8th Wall SLAM furniture tracker** (`slam-lab.html`). It includes 12 textured furniture models, one-tap estimated floor placement, rotation and repositioning, and **Done → View from other angles**. The older manual Camera Studio remains accessible at https://yandere-spex.github.io/RoomFitAR/?studio=1 as an explicitly untracked fallback. Local Vite development keeps the original React home screen for testing.
 
 SLAM tracking and the estimated world meter scale still require testing against a real device and measuring tape; this is **not yet a guaranteed accurate room-fitting tool**.
 
@@ -32,6 +32,14 @@ SLAM tracking and the estimated world meter scale still require testing against 
 ## Experimental browser SLAM test (separate from the camera filter)
 
 The latest tracked AR workflow is the **default entry on GitHub Pages** at `/RoomFitAR/` (redirects to `/RoomFitAR/slam-lab.html`), with the old manual Camera Studio available only at `/RoomFitAR/?studio=1`. The 8th Wall Distributed Engine Binary is loaded from its official public CDN under its separate binary license. This is still a tracking experiment, **not independently validated physical room measurement**. See `docs/SLAM_TEST_PROTOCOL.md` for acceptance tests. New development continues on `main`.
+
+## Floor-placement validation (v0.8)
+
+The latest tracked AR screen compares the original center-camera ground-plane ray with optional 8th Wall engine hit-test results. It **rejects** conflicting detected surfaces, implausible camera heights, uninitialized tracking, and missing camera positions. When the engine provides only feature points, RoomFit continues with an explicitly **estimated** floor plane rather than pretending that a physical surface was recognized.
+
+A green reticle means the current software checks passed, not that physical meter accuracy is verified. The `Floor` readout and JSON tracking log explain whether the candidate came from a ground-plane estimate or a consistent engine surface. Existing one-tap placement, 12 furniture models, rotation, **Done → View**, and mobile editing remain.
+
+Read [the Phase 1 accuracy notes](docs/ACCURACY_PHASE1.md), and test against a real measured reference on the phone before making furniture fit claims.
 
 ## Twelve-model spatial testing collection
 

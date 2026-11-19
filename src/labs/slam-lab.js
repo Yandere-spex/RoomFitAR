@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { evaluateFloorPlacement } from './floorPlacement.js'
 import { arPreviewProducts, createFurnitureAsset, hasSourceMetricDimensions } from '../ar/furnitureModels'
 import { catalogById } from '../domain/catalog'
 import './slam-lab.css'
@@ -34,6 +35,10 @@ const quickBar = el('lab-quickbar')
 const floorRay = new THREE.Raycaster()
 const furnitureRay = new THREE.Raycaster()
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+const HIT_TEST_INTERVAL_MS = 220
+const HIT_SAMPLE_MAX_AGE_MS = 420
+const HIT_SAMPLE_MAX_MOVE_METERS = 0.12
+const HIT_SAMPLE_MAX_ROTATION_RAD = 0.18
 const hitPoint = new THREE.Vector3()
 const screenCenter = new THREE.Vector2(0, 0)
 const errorBox = el('failure')
@@ -53,6 +58,13 @@ const state = {
   selectionRing: null,
   reticle: null,
   placementPoint: null,
+  floorVerdict: null,
+  hitResults: [],
+  hitTestAt: -Infinity,
+  hitTestCamera: null,
+  hitTestRotation: null,
+  hitTestReportedError: false,
+  floorCheckLogged: null,
   compact: false,
   viewing: false,
   origin: null,
@@ -317,7 +329,8 @@ function moveSelectedToTarget() {
 }
 
 function floorAtScreen(clientX, clientY) {
-  if (!state.camera || !state.running || state.tracking !== 'NORMAL') return null
+  if (!state.camera || !state.running || state.tracking !== 'NORMAL' ||
+      !state.floorVerdict?.ready || state.viewing) return null
   const rect = liveCanvas.getBoundingClientRect()
   if (!rect.width || !rect.height) return null
   const ndc = new THREE.Vector2(
@@ -386,6 +399,60 @@ function beginQuickPlacement() {
   return true
 }
 
+/**
+ * An optional 8th Wall hit test at the camera center. Some distributed engine
+ * versions only return FEATURE_POINT data, not detected plane surfaces.
+ * A feature point is never treated as the floor. Cache is discarded whenever
+ * the camera translates/rotates enough to make the hit stale.
+ */
+function getEngineHitResults(camera, now) {
+  const controller = window.XR8?.XrController
+  const canvas = el('camerafeed')
+  if (typeof controller?.hitTest !== 'function' ||
+      !canvas?.width || !canvas?.height) return []
+
+  if (now - state.hitTestAt >= HIT_TEST_INTERVAL_MS) {
+    state.hitTestAt = now
+    try {
+      const readings = controller.hitTest(
+        canvas.width / 2,
+        canvas.height / 2,
+        ['FEATURE_POINT', 'ESTIMATED_SURFACE', 'DETECTED_SURFACE'],
+      )
+      state.hitResults = Array.isArray(readings) ? readings : []
+      state.hitTestCamera = camera.position.clone()
+      state.hitTestRotation = camera.quaternion.clone()
+    } catch (error) {
+      if (!state.hitTestReportedError) {
+        log('hit-test-unavailable', {message: String(error?.message ?? error)})
+        state.hitTestReportedError = true
+      }
+      state.hitResults = []
+      state.hitTestCamera = null
+      state.hitTestRotation = null
+    }
+  }
+  const age = now - state.hitTestAt
+  const moved = state.hitTestCamera?.distanceTo(camera.position) ?? Infinity
+  const rotated = state.hitTestRotation?.angleTo(camera.quaternion) ?? Infinity
+  return age <= HIT_SAMPLE_MAX_AGE_MS &&
+    moved <= HIT_SAMPLE_MAX_MOVE_METERS &&
+    rotated <= HIT_SAMPLE_MAX_ROTATION_RAD
+    ? state.hitResults : []
+}
+
+function describeFloor(verdict) {
+  if (!verdict?.ready) {
+    if (verdict?.reason === 'surface-is-not-floor') return 'Likely furniture/table surface — aim at open floor'
+    if (verdict?.reason === 'surface-position-mismatch') return 'Surface position disagrees — move phone to rescan'
+    if (verdict?.reason === 'camera-height-suspect') return 'World scale uncertain — move around and rescan'
+    return 'Aim at visible floor · tracking not ready'
+  }
+  return verdict.source === 'GROUND_PLANE_ESTIMATE'
+    ? 'Estimated floor · size not calibrated'
+    : 'Surface agrees with floor · size not calibrated'
+}
+
 function createScenePipeline() {
   return {
     name: 'roomfit-slam-test',
@@ -451,6 +518,12 @@ function createScenePipeline() {
       if (!reality) {
         state.placementPoint = null
         state.tracking = 'LIMITED'
+        state.floorVerdict = null
+        state.hitResults = []
+        state.hitTestCamera = null
+        state.hitTestRotation = null
+        state.hitTestAt = -Infinity
+        el('floor-quality').textContent = 'Tracking frame unavailable'
         if (state.reticle) state.reticle.visible = false
         updatePlacementAvailability()
         return
@@ -460,7 +533,10 @@ function createScenePipeline() {
         state.tracking = status
         log('tracking-status', { status, reason: reality.trackingReason })
       }
-      const good = status === 'NORMAL'
+      const pose = reality.position
+      const poseAvailable = pose &&
+        Number.isFinite(pose.x) && Number.isFinite(pose.y) && Number.isFinite(pose.z)
+      const good = status === 'NORMAL' && Boolean(poseAvailable)
       let candidate = null
       if (good && state.camera) {
         state.camera.updateMatrixWorld(true)
@@ -471,25 +547,47 @@ function createScenePipeline() {
           if (range >= 0.25 && range <= 8) candidate = hitPoint
         }
       }
-      // The engine estimates a shared horizontal ground plane. A valid direct
-      // ray/plane hit is immediately usable; no tap-and-hold delay is required.
-      // Editing never scales placed meshes when the camera moves or zooms.
-      state.placementPoint = candidate ? candidate.clone() : null
+      // Compare our ground-plane ray to optional engine hits. FEATURE_POINT
+      // results alone never prove a real floor or calibrate world size.
+      const checkedAt = performance.now()
+      const engineHits = good && candidate && state.camera
+        ? getEngineHitResults(state.camera, checkedAt) : []
+      const verdict = evaluateFloorPlacement({
+        trackingStatus: good ? status : 'LIMITED',
+        trackingReason: reality.trackingReason,
+        cameraPosition: state.camera?.position,
+        planePoint: candidate,
+        hitResults: engineHits,
+      })
+      state.floorVerdict = verdict
+      state.placementPoint = verdict.ready
+        ? new THREE.Vector3(verdict.position.x, verdict.position.y, verdict.position.z)
+        : null
+      const quality = describeFloor(verdict)
+      if (el('floor-quality').textContent !== quality) el('floor-quality').textContent = quality
+      const verdictState = verdict.reason + ':' + verdict.source
+      if (state.floorCheckLogged !== verdictState) {
+        log('floor-validation', {
+          result: verdict.reason, source: verdict.source,
+          disagreementMeters: verdict.disagreement == null ? null : fmt(verdict.disagreement),
+        })
+        state.floorCheckLogged = verdictState
+      }
       if (state.reticle) {
         state.reticle.visible = Boolean(candidate) && !state.viewing
-        if (candidate) state.reticle.position.set(candidate.x, candidate.y + 0.016, candidate.z)
-        state.reticle.material.color.setHex(0x36edae)
+        const target = state.placementPoint || candidate
+        if (target) state.reticle.position.set(target.x, 0.016, target.z)
+        state.reticle.material.color.setHex(verdict.ready ? 0x36edae : 0xffb14b)
       }
       updatePlacementAvailability()
       display(
         state.viewing
           ? (good ? 'Viewing placed furniture' : 'Tracking ' + status + ' · view may drift')
-          : (good ? (candidate ? 'Floor detected · Tap once to place' : 'Aim at the floor') : 'Tracking ' + status),
+          : (verdict.ready ? 'Floor estimated · Tap once to place' : 'Floor not ready · rescan'),
         state.viewing
           ? 'Walk around the furniture; placement and size are locked. Tap Edit placement to make changes.'
-          : (good ? 'No holding needed. The floor position is estimated; verify scale with a tape.'
-            : 'Tracking must recover before floor placement.'),
-        good && Boolean(candidate),
+          : quality + '. One tap to place when the target is green.',
+        good && verdict.ready,
       )
       const p = reality.position
       const now = performance.now()
@@ -591,6 +689,11 @@ place.addEventListener('click', () => {
     xyz: [fmt(point.x), fmt(point.y), fmt(point.z)],
     dimensionsMeters: catalogById[state.selectedId].dimensions,
     source: sourceModelText(state.selectedId),
+    floorValidation: {
+      reason: state.floorVerdict?.reason,
+      source: state.floorVerdict?.source,
+      disagreementMeters: state.floorVerdict?.disagreement,
+    },
   })
 })
 clear.addEventListener('click', removeLast)
@@ -686,6 +789,12 @@ el('recenter').addEventListener('click', () => {
   }
   clearPlaced()
   state.placementPoint = null
+  state.floorVerdict = null
+  state.hitResults = []
+  state.hitTestCamera = null
+  state.hitTestRotation = null
+  state.hitTestAt = -Infinity
+  el('floor-quality').textContent = 'Recentered; awaiting new floor'
   if (state.reticle) state.reticle.visible = false
   updatePlacementAvailability()
   window.XR8.XrController.recenter()
@@ -703,6 +812,11 @@ exportLog.addEventListener('click', () => {
     device: navigator.userAgent,
     sessionTracking: state.tracking,
     cameraStatus: state.cameraStatus,
+    floorValidation: state.floorVerdict ? {
+      source: state.floorVerdict.source,
+      reason: state.floorVerdict.reason,
+      disagreementMeters: state.floorVerdict.disagreement,
+    } : null,
     poseDistanceEstimatedMeters: fmt(state.cumulative),
     events: engineLog,
   }

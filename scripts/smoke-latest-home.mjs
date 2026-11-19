@@ -26,7 +26,7 @@ try {
   await page.waitForURL(/\/RoomFitAR\/slam-lab\.html(?:\?|$)/, {
     timeout: 15000,
   })
-  assert.match(await page.title(), /RoomFit AR v0\.7/)
+  assert.match(await page.title(), /RoomFit AR v0\.8/)
   await page.getByRole('heading', {
     name: 'Test real-size furniture placement',
   }).waitFor()
