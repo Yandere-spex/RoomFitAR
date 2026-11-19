@@ -107,9 +107,9 @@ export default function CameraHome({ capabilities, onLaunchAR, onOpenStudio, onO
         <div>
           <span className="camera-eyebrow">EXPERIMENTAL · NOT YET DEVICE-VALIDATED</span>
           <h3>Test tracked furniture placement (SLAM)</h3>
-          <p>This experimental 8th Wall tracker offers eight realistic 3D furniture models, starting with a small wooden stool. Select a piece, place it on the estimated floor and move your phone to check stability. Tracking and real-world size remain unverified on your device.</p>
+          <p>This experimental 8th Wall tracker offers 12 realistic 3D furniture models, starting with a small wooden stool. Select a piece, place it on the estimated floor and move your phone to check stability. Tracking and real-world size remain unverified on your device.</p>
         </div>
-        <a href="/slam-lab.html" className="camera-test-link" onClick={stopCamera}><ScanLine size={18}/> Test SLAM Tracking <ChevronRight size={16}/></a>
+        <a href={import.meta.env.BASE_URL + "slam-lab.html"} className="camera-test-link" onClick={stopCamera}><ScanLine size={18}/> Test SLAM Tracking <ChevronRight size={16}/></a>
       </section>
       <section className="camera-next">
         <div><span className="camera-eyebrow">ALTERNATIVE WORKSPACE</span><h3>Want to plan without the camera?</h3><p>Open Digital Draft to arrange furniture in a 3D room preview. It is not live AR or physical room recognition.</p></div>
