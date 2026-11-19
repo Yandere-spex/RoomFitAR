@@ -47,7 +47,7 @@ try {
     r.fulfill({ status: 200, contentType: 'text/javascript', body: '' }))
   await page.goto(new URL('slam-lab.html', process.env.ROOMFIT_TEST_URL ??
     'http://127.0.0.1:5173/').toString())
-  await page.getByRole('button', { name: 'Start 8th Wall SLAM test' }).click()
+  await page.getByRole('button', { name: 'Start Camera' }).click()
   await page.waitForFunction(() =>
     document.getElementById('asset-status')?.dataset.readyId === 'wooden-stool')
 
@@ -55,23 +55,23 @@ try {
     await page.evaluate(() => window.__fakeFrame())
     await page.waitForTimeout(60)
   }
-  await page.getByRole('button', { name: 'Place selected furniture' }).waitFor()
-  assert.ok(await page.getByRole('button', { name: 'Place selected furniture' }).isEnabled(),
+  await page.getByRole('button', { name: 'Place Furniture' }).waitFor()
+  assert.ok(await page.getByRole('button', { name: 'Place Furniture' }).isEnabled(),
     'stable synthetic floor should enable place')
-  await page.getByRole('button', { name: 'Place selected furniture' }).click()
+  await page.getByRole('button', { name: 'Place Furniture' }).click()
   assert.equal(await page.locator('#lab-controls').isVisible(), false)
   assert.equal(await page.locator('#lab-quickbar').isVisible(), true)
   assert.match(await page.locator('#sofa-state').textContent(), /1 placed/)
   await page.getByRole('button', { name: 'Undo last' }).click()
   assert.match(await page.locator('#sofa-state').textContent(), /None placed/)
-  await page.getByRole('button', { name: 'Change furniture' }).click()
+  await page.getByRole('button', { name: 'Change Piece' }).click()
   assert.equal(await page.locator('#lab-controls').isVisible(), true)
   await page.locator('[data-product-id="papasan-chair"]').click()
   await page.waitForFunction(() =>
     document.getElementById('asset-status')?.dataset.readyId === 'papasan-chair')
   await page.getByRole('button', { name: 'Hide furniture options' }).click()
   assert.match(await page.locator('#quick-selected').textContent(), /Papasan/)
-  assert.ok(await page.getByRole('button', { name: 'Place furniture' }).isEnabled())
+  assert.ok(await page.getByRole('button', { name: 'Add Another' }).isEnabled())
   await page.evaluate(() => {
     const el = document.getElementById('camerafeed')
     el.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1, clientX: 170, clientY: 315 }))

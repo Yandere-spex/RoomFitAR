@@ -79,9 +79,32 @@ const log = (name, details = {}) => {
   engineLog.push({ at: new Date().toISOString(), event: name, ...details })
   if (engineLog.length > LIMIT) engineLog.shift()
 }
+const friendlyStatus = (status) => {
+  if (/engine loaded/i.test(status)) return 'Camera ready'
+  if (/engine download failed|tracking engine error/i.test(status)) return 'Camera unavailable'
+  if (/camera initializing|opening camera/i.test(status)) return 'Opening your camera…'
+  if (/viewing placed/i.test(status)) return 'Enjoy your room'
+  if (/floor estimated|floor detected/i.test(status)) return 'Ready to place'
+  if (/floor not ready|aim at the floor/i.test(status)) return 'Point at the floor'
+  if (/tracking|recenter/i.test(status)) return 'Move your phone slowly'
+  return status
+}
+const friendlyDescription = (status, description) => {
+  if (/floor estimated|floor detected/i.test(status)) return 'Tap Place to add your furniture.'
+  if (/floor not ready|aim at the floor/i.test(status)) return 'Try a clear floor area with good lighting.'
+  if (/viewing placed/i.test(status)) return 'Move around to see your furniture from every angle.'
+  if (/engine loaded/i.test(status)) return 'Tap Start Camera to begin.'
+  if (/camera initializing|opening camera/i.test(status)) return 'Allow camera access when asked.'
+  if (/recenter/i.test(status)) return 'Point toward the floor to find a fresh spot.'
+  if (/tracking engine error|engine download failed/i.test(status)) return 'Check your connection, then try again.'
+  if (/tracking/i.test(status)) return 'Move slowly toward a brighter floor area.'
+  return description
+}
 const display = (status, description, good = false) => {
-  if (el('tracking-status').textContent !== status) el('tracking-status').textContent = status
-  if (el('tracking-description').textContent !== description) el('tracking-description').textContent = description
+  const title = friendlyStatus(status)
+  const detail = friendlyDescription(status, description)
+  if (el('tracking-status').textContent !== title) el('tracking-status').textContent = title
+  if (el('tracking-description').textContent !== detail) el('tracking-description').textContent = detail
   el('tracking-dot').classList.toggle('good', good)
 }
 const message = (text) => {
@@ -96,20 +119,21 @@ window.addEventListener('error', (e) => log('javascript-error', { text: e.messag
 window.addEventListener('unhandledrejection', (e) => log('promise-error', { text: String(e.reason) }))
 
 const sourceModelText = (id) => hasSourceMetricDimensions(id)
-  ? 'Original 3D model dimensions in meters; visual AR scale requires phone verification.'
-  : 'Sample showcase scale is provisional. Check manufacturer measurements.'
+  ? 'Size shown is from the 3D model, not a verified store measurement.'
+  : 'Approximate size. Check actual product measurements before buying.'
 
 const dimensionText = (id) => {
   const d = catalogById[id].dimensions
-  return 'Size: ' + d.width.toFixed(2) + ' m wide × ' +
-    d.depth.toFixed(2) + ' m deep × ' + d.height.toFixed(2) + ' m high'
+  return 'About ' + Math.round(d.width * 100) + ' cm wide · ' +
+    Math.round(d.depth * 100) + ' cm deep · ' + Math.round(d.height * 100) + ' cm tall'
 }
 
 function displayRenderedSize(id, model) {
   if (state.selectedId !== id) return
   const [width, height, depth] = model.userData.modelSizeMeters
-  el('selected-size').textContent = 'Rendered: ' + width.toFixed(2) + ' m wide × ' +
-    depth.toFixed(2) + ' m deep × ' + height.toFixed(2) + ' m high'
+  el('selected-size').textContent = 'About ' + Math.round(width * 100) +
+    ' cm wide · ' + Math.round(depth * 100) + ' cm deep · ' +
+    Math.round(height * 100) + ' cm tall'
 }
 
 function updatePlacementAvailability() {
@@ -142,8 +166,8 @@ function updatePlacedControls() {
   selectNextButton.disabled = total < 2
   quickSelectNext.disabled = total < 2
   const description = editing
-    ? 'Editing: ' + catalogById[editing.productId].name
-    : 'No furniture selected for editing'
+    ? 'Adjusting ' + catalogById[editing.productId].name
+    : 'Choose a piece to adjust'
   el('full-editing').textContent = description
   el('quick-editing').textContent = description
   el('sofa-state').textContent = has
@@ -182,7 +206,7 @@ async function prepareAsset(id) {
     updatePlacementAvailability()
     return
   }
-  el('asset-status').textContent = 'Loading textured model…'
+  el('asset-status').textContent = 'Getting it ready…'
   try {
     // Load only a chosen model, not the entire collection into phone memory.
     const model = await createFurnitureAsset(catalogById[id])
@@ -201,9 +225,8 @@ async function prepareAsset(id) {
   } catch (error) {
     log('model-error', { productId: id, message: error?.message ?? String(error) })
     if (state.selectedId === id) {
-      el('asset-status').textContent = 'Asset unavailable'
-      message('Failed to load ' + catalogById[id].name + ': ' +
-        (error?.message ?? 'Asset or model dimensions unavailable'))
+      el('asset-status').textContent = 'Could not load'
+      message('This furniture could not be loaded. Try choosing another piece or reloading the page.')
     }
   }
   updatePlacementAvailability()
@@ -241,7 +264,7 @@ function renderCatalog() {
     name.textContent = product.name
     button.append(name)
     const size = document.createElement('small')
-    size.textContent = product.dimensions.width.toFixed(2) + 'm wide'
+    size.textContent = Math.round(product.dimensions.width * 100) + ' cm wide'
     button.append(size)
     button.addEventListener('click', () => void prepareAsset(id))
     target.append(button)
@@ -384,8 +407,8 @@ function setViewMode(viewing) {
     const selected = state.selectedPlaced || state.placed.at(-1)
     const dimensions = selected?.mesh?.userData?.modelSizeMeters
     el('view-model-size').textContent = dimensions
-      ? 'Model: ' + dimensions.map(value => value.toFixed(2)).join(' × ') + ' m (W × H × D)'
-      : 'Model dimensions stay locked while you move the phone'
+      ? 'Approx. ' + Math.round(dimensions[0] * 100) + ' cm wide. Check real product size before buying.'
+      : 'Furniture size is estimated. Check before buying.'
   }
   setCompact(true)
   log(viewing ? 'view-mode-entered' : 'edit-mode-entered', {
@@ -443,14 +466,14 @@ function getEngineHitResults(camera, now) {
 
 function describeFloor(verdict) {
   if (!verdict?.ready) {
-    if (verdict?.reason === 'surface-is-not-floor') return 'Likely furniture/table surface — aim at open floor'
-    if (verdict?.reason === 'surface-position-mismatch') return 'Surface position disagrees — move phone to rescan'
-    if (verdict?.reason === 'camera-height-suspect') return 'World scale uncertain — move around and rescan'
-    return 'Aim at visible floor · tracking not ready'
+    if (verdict?.reason === 'surface-is-not-floor') return 'Point at the open floor, not a table or chair.'
+    if (verdict?.reason === 'surface-position-mismatch') return 'Move your phone slowly and try another spot.'
+    if (verdict?.reason === 'camera-height-suspect') return 'Move around a little so the camera can find your floor.'
+    return 'We need a clearer view of your floor.'
   }
   return verdict.source === 'GROUND_PLANE_ESTIMATE'
-    ? 'Estimated floor · size not calibrated'
-    : 'Surface agrees with floor · size not calibrated'
+    ? 'Floor found · Size may vary'
+    : 'Floor found · Check furniture measurements'
 }
 
 function createScenePipeline() {
@@ -511,7 +534,7 @@ function createScenePipeline() {
     onCameraStatusChange: ({ status }) => {
       state.cameraStatus = status
       log('camera-status', { status })
-      if (status === 'failed') message('The engine could not open the rear camera.')
+      if (status === 'failed') message('Camera access did not work. Check your camera permission and try again.')
     },
     onUpdate: ({ processCpuResult }) => {
       const reality = processCpuResult?.reality
@@ -608,7 +631,8 @@ function createScenePipeline() {
     onException: (error) => {
       state.tracking = 'LIMITED'
       state.placementPoint = null
-      message('Tracking engine error: ' + (error?.message ?? String(error)))
+      log('engine-runtime-error', { details: String(error?.message ?? error) })
+      message('The camera lost its position. Try scanning the room again.')
       display('Tracking engine error', 'See technical error message')
       place.disabled = true
     },
@@ -618,7 +642,7 @@ function createScenePipeline() {
 function initEngine() {
   if (!window.XR8) return
   start.disabled = false
-  start.textContent = 'Start 8th Wall SLAM test'
+  start.textContent = 'Start Camera'
   display('Engine loaded', 'Tap Start to begin camera tracking')
   log('engine-ready')
 }
@@ -626,7 +650,7 @@ function initEngine() {
 start.addEventListener('click', () => {
   if (state.running) return
   if (!window.XR8) {
-    message('Engine unavailable. Check internet access and reload the page.')
+    message('The camera preview is unavailable. Check your internet connection and reload.')
     return
   }
   errorBox.hidden = true
@@ -660,7 +684,8 @@ start.addEventListener('click', () => {
     log('camera-start-requested', { mode: 'absolute-scale' })
   } catch (error) {
     start.disabled = false
-    message('Could not start 8th Wall engine: ' + (error?.message ?? String(error)))
+    log('camera-start-error', { details: String(error?.message ?? error) })
+    message('The camera could not start. Check your internet and camera permission, then reload.')
   }
 })
 place.addEventListener('click', () => {
@@ -784,9 +809,12 @@ liveCanvas.addEventListener('pointerup', (event) => {
 liveCanvas.addEventListener('pointercancel', () => { pressPosition = null })
 el('recenter').addEventListener('click', () => {
   if (!state.running || !window.XR8?.XrController?.recenter) {
-    message('Recenter is not available until the tracking engine has started.')
+    message('Start your camera before scanning your room again.')
     return
   }
+  if (state.placed.length > 0 && !window.confirm(
+    'Scan the room again? This will clear your currently placed furniture.',
+  )) return
   clearPlaced()
   state.placementPoint = null
   state.floorVerdict = null
@@ -803,7 +831,7 @@ el('recenter').addEventListener('click', () => {
   state.cumulative = 0
   el('distance').textContent = '—'
   log('tracking-recentered')
-  display('Recenter requested', 'Aim at the floor; the engine will estimate its position again.')
+  display('Move your phone slowly', 'Point your camera at the floor to start again.')
 })
 exportLog.addEventListener('click', () => {
   const record = {
@@ -839,7 +867,7 @@ if (window.XR8) initEngine()
 else window.addEventListener('xrloaded', initEngine, { once: true })
 setTimeout(() => {
   if (start.disabled && !state.running && !window.XR8) {
-    message('8th Wall SDK has not loaded. Check network access, browser content blockers, or try again.')
-    display('Engine download failed', 'Unable to start the SLAM compatibility test')
+    message('The camera could not start. Check your internet connection and try reloading this page.')
+    display('Camera unavailable', 'Try reloading this page.')
   }
 }, 12000)

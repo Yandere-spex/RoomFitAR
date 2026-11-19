@@ -3,83 +3,143 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#073629" />
-  <title>RoomFit AR v0.8 | Floor Placement Validation</title>
-  <meta name="description" content="Experimental tracked furniture and camera-pose test. Requires camera permission and suitable browser." />
-  <!-- Official unmodified engine, loaded through its published CDN distribution. -->
+  <meta name="theme-color" content="#173d31" />
+  <meta name="description" content="RoomFit helps you choose furniture and preview it in your own room. See how it looks before buying." />
+  <title>RoomFit | See Furniture in Your Room</title>
+  <!-- Official tracking engine and licensed supporting libraries, not bundled. -->
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/landing-page@1/dist/landing-page.js" crossorigin="anonymous"></script>
 </head>
 <body>
-  <canvas id="camerafeed"></canvas>
+  <canvas id="camerafeed" aria-label="Live camera view for furniture preview"></canvas>
   <main id="lab-overlay">
-    <header class="lab-header"><a href="./?studio=1" aria-label="Open manual camera preview">← Manual preview</a><span>RoomFit v0.8 · floor validation</span></header>
-    <div class="lab-status" role="status"><span id="tracking-dot"></span><strong id="tracking-status">Loading tracking engine...</strong><small id="tracking-description">Device capability is not verified yet</small></div>
-    <div class="lab-instructions" id="lab-instructions">
-      <h1>Test real-size furniture placement</h1>
-      <p>RoomFit uses browser SLAM and now checks whether the estimated floor agrees with any reliable surface result available from the tracking engine. It is still experimental: physical scale and floor anchoring must be measured on your phone.</p>
-      <button id="start-tracking" disabled>Loading engine...</button>
-      <small>Start with a compact 27 cm wooden footstool rather than a large sofa. After tracking reaches NORMAL, select any furniture below and test its real-world placement. All dimensions are approximate model sizes, not certified product measurements.</small>
-      <div id="failure" role="alert" hidden></div>
-    </div>
-    <section class="lab-controls" id="lab-controls" hidden>
-      <p>Choose furniture and aim at the floor. Place once when the target is green. Amber means the location was rejected. No holding or manual resizing. Press <strong>Done</strong> to walk around and inspect.</p>
-      <div class="lab-catalog-heading">
-        <strong>Furniture <span id="catalog-count">12 pieces</span></strong>
-        <span id="asset-status" aria-live="polite">Preparing model…</span>
-        <button id="collapse-panel" type="button" aria-label="Hide furniture options">Hide options</button>
+    <header class="lab-header">
+      <div class="rf-brand" aria-label="RoomFit home">
+        <span class="rf-logo" aria-hidden="true">R<span class="rf-logo-dot">.</span></span>
+        <span class="rf-brand-text"><strong>RoomFit</strong><small>Make room for ideas</small></span>
       </div>
+      <details id="help-panel" class="rf-help">
+        <summary aria-label="Open help">Help <span aria-hidden="true">?</span></summary>
+        <div class="rf-help-content">
+          <h2>How to use RoomFit</h2>
+          <p><strong>1.</strong> Start the camera and point it at your floor.</p>
+          <p><strong>2.</strong> Choose furniture, then tap <strong>Place</strong> once the target turns green.</p>
+          <p><strong>3.</strong> Turn or move it, then tap <strong>Done</strong> to look from another angle.</p>
+          <p class="rf-help-note">Furniture size is an estimate. Check real measurements before buying.</p>
+          <a href="./?studio=1">Try the basic camera preview</a>
+          <a href="https://8thwall.org/docs/engine/license" target="_blank" rel="noreferrer">Tracking technology information</a>
+        </div>
+      </details>
+    </header>
+
+    <div class="lab-status" role="status" aria-live="polite">
+      <span id="tracking-dot" aria-hidden="true"></span>
+      <span class="rf-status-copy"><strong id="tracking-status">Preparing camera…</strong>
+        <small id="tracking-description">Getting your room preview ready</small>
+      </span>
+    </div>
+
+    <section class="lab-instructions" id="lab-instructions" aria-labelledby="rf-welcome-title">
+      <span class="rf-eyebrow">YOUR SPACE, YOUR STYLE</span>
+      <h1 id="rf-welcome-title">See furniture in your room.</h1>
+      <p>Find a piece you love, see how it looks at home, and explore it from every angle.</p>
+      <div class="rf-showcase" aria-hidden="true">
+        <div class="rf-showcase-item"><img src="%BASE_URL%models/thumbs/gallinera-chair.webp" alt="" /></div>
+        <div class="rf-showcase-item"><img src="%BASE_URL%models/thumbs/papasan-chair.webp" alt="" /></div>
+        <div class="rf-showcase-item"><img src="%BASE_URL%models/thumbs/gallinera-table.webp" alt="" /></div>
+      </div>
+      <div class="rf-journey" aria-label="Three easy steps"><span>Choose</span><span aria-hidden="true">→</span><span>Place</span><span aria-hidden="true">→</span><span>Enjoy</span></div>
+      <button id="start-tracking" class="rf-primary" type="button" disabled>Preparing camera…</button>
+      <small class="rf-assurance">Uses your phone camera. Furniture size is an estimate, so check measurements before buying.</small>
+      <div id="failure" role="alert" hidden></div>
+    </section>
+
+    <section class="lab-controls" id="lab-controls" aria-label="Choose and place furniture" hidden>
+      <div class="rf-sheet-handle" aria-hidden="true"></div>
+      <div class="lab-catalog-heading">
+        <div><span class="rf-section-eyebrow">STEP 1 OF 2</span><h2>Choose your furniture</h2><small id="catalog-count">12 pieces</small></div>
+        <button id="collapse-panel" type="button" aria-label="Hide furniture options">Close <span aria-hidden="true">×</span></button>
+      </div>
+      <p class="rf-step-copy">Pick a piece, point your camera at the floor, then place it where you want.</p>
       <div id="catalog-filters" class="lab-category-filters" role="group" aria-label="Furniture categories"></div>
       <div id="furniture-catalog" class="lab-catalog" role="group" aria-label="Select 3D furniture"></div>
       <div class="lab-selection">
-        <strong id="selected-name">Compact Wooden Stool</strong>
-        <span id="selected-size">Model size: 0.27 m W × 0.18 m D × 0.18 m H</span>
-        <small id="selected-provenance">Dimensions are from the asset creator, not verified retail specifications.</small>
+        <div class="rf-selected-heading">
+          <strong id="selected-name">Compact Wooden Stool</strong>
+          <span id="asset-status" aria-live="polite">Getting furniture ready…</span>
+        </div>
+        <span id="selected-size">Approximate model size</span>
+        <small id="selected-provenance">Check real dimensions before buying.</small>
       </div>
-      <div class="lab-grid">
-        <button id="place-furniture" disabled>Place selected furniture</button>
-        <button id="done-view-full" type="button" disabled>Done · View from other angles</button>
-        <button id="rotate-left" disabled>↶ Rotate selected -15°</button>
-        <button id="rotate-right" disabled>↷ Rotate selected +15°</button>
-        <button id="move-selected" disabled>Move selected to target</button>
-        <button id="remove-selected" disabled>Remove selected</button>
-        <button id="reset-sofa" disabled>Undo last placement</button>
-        <button id="recenter" type="button">Recenter tracking</button>
-        <button id="export-log">Export tracking log</button>
+      <div class="rf-primary-actions">
+        <button id="place-furniture" class="rf-primary" disabled>Place Furniture</button>
+        <button id="done-view-full" class="rf-secondary" type="button" disabled>Done · View My Room</button>
       </div>
-      <div class="lab-metrics"><span>Camera traveled: <b id="distance">—</b></span><span>Objects: <b id="sofa-state">None placed</b></span><span>Floor: <b id="floor-quality">Not yet checked</b></span></div>
-      <div class="lab-edit-hint"><strong id="full-editing">No furniture selected for editing</strong><button type="button" id="select-next" disabled>Select another</button></div>
+      <div class="rf-edit-section">
+        <h3>Adjust your furniture</h3>
+        <div class="lab-grid">
+          <button id="rotate-left" disabled><span aria-hidden="true">↶</span> Turn Left</button>
+          <button id="rotate-right" disabled><span aria-hidden="true">↷</span> Turn Right</button>
+          <button id="move-selected" disabled><span aria-hidden="true">✥</span> Move Here</button>
+          <button id="remove-selected" disabled><span aria-hidden="true">×</span> Remove</button>
+          <button id="reset-sofa" disabled>Undo Last</button>
+        </div>
+        <div class="lab-edit-hint"><strong id="full-editing">Choose a piece to adjust</strong>
+          <button type="button" id="select-next" disabled>Next Piece</button>
+        </div>
+      </div>
       <div id="failure-live" role="alert" hidden></div>
-      <small>Floor plane and world scale are SLAM estimates. Compare a known physical dimension with a tape measure. Imported model dimensions follow the original asset metadata and may differ from actual products. The log does not contain camera frames.</small>
+      <details id="advanced-options" class="rf-advanced">
+        <summary>Help & Settings <span aria-hidden="true">⌄</span></summary>
+        <div class="rf-advanced-body">
+          <p>Having trouble finding your floor? Try brighter lighting, a patterned area, or scan the room again.</p>
+          <button id="recenter" type="button">Scan Room Again</button>
+          <button id="export-log" type="button">Save Troubleshooting Info</button>
+          <div class="lab-metrics">
+            <span>Camera movement: <b id="distance">—</b></span>
+            <span>Furniture placed: <b id="sofa-state">None placed</b></span>
+            <span>Floor check: <b id="floor-quality">Not yet checked</b></span>
+          </div>
+          <p>For testing only. The camera estimates distances, so always verify the actual size of furniture.</p>
+          <a href="./?studio=1">Open basic camera preview</a>
+          <a href="https://8thwall.org/docs/engine/license" target="_blank" rel="noreferrer">Tracking technology and license</a>
+        </div>
+      </details>
     </section>
-    <aside id="lab-quickbar" class="lab-quickbar" hidden aria-label="Quick AR placement controls">
-      <button type="button" id="done-view" class="lab-done" disabled>Done · View from other angles</button>
-      <div class="lab-quick-heading"><strong id="quick-selected">Compact Wooden Stool</strong>
-        <button type="button" id="show-options">Change furniture</button>
+
+    <aside id="lab-quickbar" class="lab-quickbar" aria-label="Adjust placed furniture" hidden>
+      <div class="rf-sheet-handle" aria-hidden="true"></div>
+      <button type="button" id="done-view" class="lab-done" disabled>Done · View My Room <span aria-hidden="true">✓</span></button>
+      <div class="lab-quick-heading">
+        <div><small>YOUR FURNITURE</small><strong id="quick-selected">Compact Wooden Stool</strong></div>
+        <button type="button" id="show-options">Change Piece</button>
       </div>
-      <div class="lab-edit-hint"><strong id="quick-editing">No furniture selected for editing</strong><button type="button" id="quick-select-next" disabled>Select next</button></div>
-      <div class="lab-quick-actions">
-        <button type="button" id="quick-place" disabled>Place furniture</button>
-        <button type="button" id="quick-move" disabled>Move selected to target</button>
+      <div class="lab-edit-hint"><strong id="quick-editing">Adjust your piece</strong>
+        <button type="button" id="quick-select-next" disabled>Next Piece</button>
       </div>
       <div class="lab-edit-actions">
-        <button type="button" id="quick-rotate-left" disabled>↶ Rotate -15°</button>
-        <button type="button" id="quick-rotate-right" disabled>↷ Rotate +15°</button>
-        <button type="button" id="quick-remove" disabled>Remove selected</button>
-        <button type="button" id="quick-undo" disabled>Undo last</button>
+        <button type="button" id="quick-rotate-left" disabled>↶ Turn Left</button>
+        <button type="button" id="quick-rotate-right" disabled>Turn Right ↷</button>
+        <button type="button" id="quick-move" disabled>✥ Move Here</button>
+        <button type="button" id="quick-place" disabled>+ Add Another</button>
       </div>
-      <small>Furniture stays at its tracked floor coordinates. Press Done to stop editing and move the phone around it.</small>
+      <div class="rf-subtle-actions">
+        <button type="button" id="quick-undo" disabled>Undo Last</button>
+        <button type="button" id="quick-remove" disabled>Remove Piece</button>
+      </div>
+      <small class="rf-compact-tip">Tap and drag the furniture to move it on the floor. Its model size stays the same.</small>
     </aside>
-    <aside id="lab-viewbar" class="lab-viewbar" hidden aria-label="Inspect placed furniture">
+
+    <aside id="lab-viewbar" class="lab-viewbar" aria-label="View furniture in your room" hidden>
+      <div class="rf-sheet-handle" aria-hidden="true"></div>
       <div class="lab-view-title">
-        <strong>Viewing furniture in your room</strong>
-        <small id="view-model-size">Model size stays fixed when you move the phone.</small>
+        <strong>Take a look around ✨</strong>
+        <small>Walk closer or to the side to see your furniture from another angle.</small>
       </div>
-      <button type="button" id="resume-edit">Edit placement</button>
-      <small>Walk closer or farther and look from different angles. Zooming never changes the model dimensions. World scale is an AR estimate until tape-verified.</small>
+      <button type="button" id="resume-edit">Adjust Furniture</button>
+      <small id="view-model-size">The furniture keeps its model size as you move.</small>
     </aside>
-    <footer><a href="https://8thwall.org/docs/engine/license" target="_blank" rel="noreferrer">8th Wall binary license</a> · Powered by 8th Wall SLAM · <a href="./?studio=1">Manual Camera Studio (untracked fallback)</a></footer>
   </main>
   <script type="module" src="/src/labs/slam-lab.js"></script>
 </body>

@@ -33,6 +33,14 @@ SLAM tracking and the estimated world meter scale still require testing against 
 
 The latest tracked AR workflow is the **default entry on GitHub Pages** at `/RoomFitAR/` (redirects to `/RoomFitAR/slam-lab.html`), with the old manual Camera Studio available only at `/RoomFitAR/?studio=1`. The 8th Wall Distributed Engine Binary is loaded from its official public CDN under its separate binary license. This is still a tracking experiment, **not independently validated physical room measurement**. See `docs/SLAM_TEST_PROTOCOL.md` for acceptance tests. New development continues on `main`.
 
+## v0.9 — Simple mobile furniture preview interface
+
+The public RoomFit link opens a new welcome experience with familiar **Start Camera**, **Choose Furniture**, **Place Furniture**, **Done · View My Room**, and **Adjust Furniture** actions. The 12-model catalog (including the Filipino furniture group) shows picture cards, category tabs and dimensions in centimeters. Placement, rotation, touch movement, adding another piece, undo, removal and Done / camera walkaround still use the v0.8 tracking code.
+
+The primary camera screen hides technical terms, pose diagnostics, meters of camera travel and developer controls. **Help** explains the three-step workflow and warns that furniture size is an estimate. **Help & Settings** inside the furniture panel keeps the existing scan reset, exportable troubleshooting logs, floor-check information, license link and manual camera fallback. These functions were moved, not deleted.
+
+The layout is optimized for small Android phone viewports (320, 360 and 390 px), respects safe-area insets and scrolls panels internally. Controls remain keyboard-focusable and use labels in addition to any status colors. This is a usability update; the physical absolute-scale accuracy is **not** independently verified. Refer to `docs/ACCURACY_PHASE1.md` for floor-validation notes and run `node scripts/smoke-mobile-edit.mjs` before shipping UI changes.
+
 ## Floor-placement validation (v0.8)
 
 The latest tracked AR screen compares the original center-camera ground-plane ray with optional 8th Wall engine hit-test results. It **rejects** conflicting detected surfaces, implausible camera heights, uninitialized tracking, and missing camera positions. When the engine provides only feature points, RoomFit continues with an explicitly **estimated** floor plane rather than pretending that a physical surface was recognized.

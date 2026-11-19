@@ -49,7 +49,20 @@ try {
     await page.route(/cdn\.jsdelivr\.net\/npm\/@8thwall\//, r =>
       r.fulfill({ status: 200, contentType: 'text/javascript', body: '' }))
     await page.goto(address)
-    await page.getByRole('button', { name: 'Start 8th Wall SLAM test' }).click()
+    await page.getByRole('heading', { name: 'See furniture in your room.' }).waitFor()
+    assert.equal(await page.locator('#lab-instructions').isVisible(), true)
+    assert.equal(await page.locator('#lab-controls').isVisible(), false)
+    const welcomeBounds = await page.locator('#lab-instructions').boundingBox()
+    assert.ok(welcomeBounds.x >= 0 && welcomeBounds.x + welcomeBounds.width <= width,
+      'welcome card must fit narrow mobile screens')
+    assert.ok(welcomeBounds.y + welcomeBounds.height <= height + 3,
+      'welcome card must remain within the viewport')
+    await page.locator('#help-panel summary').click()
+    await page.getByRole('heading', { name: 'How to use RoomFit' }).waitFor()
+    await page.locator('#help-panel summary').click()
+    await page.getByRole('button', { name: 'Start Camera' }).click()
+    assert.equal(await page.locator('#advanced-options').evaluate(el => el.open), false,
+      'advanced settings should be collapsed by default')
     await page.waitForFunction(() =>
       document.getElementById('asset-status')?.dataset.readyId === 'wooden-stool')
 
@@ -165,6 +178,7 @@ try {
     // Switch from compact to full menu and verify all controls can be reached
     // on narrow/short screens, including actions below the initial scroll.
     await page.locator('#show-options').click()
+    await page.locator('#advanced-options summary').click()
     const ids = ['#rotate-left', '#rotate-right', '#move-selected', '#remove-selected',
       '#reset-sofa', '#recenter', '#export-log', '#select-next']
     for (const id of ids) {

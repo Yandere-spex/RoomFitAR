@@ -41,7 +41,7 @@ try {
   await page.route(/cdn\.jsdelivr\.net\/npm\/@8thwall\//, route =>
     route.fulfill({ status: 200, contentType: 'text/javascript', body: '' }))
   await page.goto(new URL('slam-lab.html', process.env.ROOMFIT_TEST_URL ?? 'http://127.0.0.1:5173/').toString())
-  await page.getByRole('button', { name: 'Start 8th Wall SLAM test' }).click()
+  await page.getByRole('button', { name: 'Start Camera' }).click()
   assert.equal(await page.locator('.lab-furniture-card').count(), ids.length)
 
   const authoritativeSourceSizes = {
@@ -67,7 +67,7 @@ try {
       throw Error('Asset ' + id + ' did not become Ready. Current status: ' + current + '; error: ' + error)
     }
     const display = await page.locator('#selected-size').textContent()
-    assert.ok(display.includes(' m wide'), 'Missing source-model dimensions for ' + id)
+    assert.ok(display.includes(' cm wide'), 'Missing readable model dimensions for ' + id)
     const dimensions = JSON.parse(await page.locator('#asset-status').getAttribute('data-actual-meters'))
     assert.equal(dimensions.length, 3)
     if (authoritativeSourceSizes[id]) {
@@ -84,7 +84,7 @@ try {
   assert.equal(await page.locator('.lab-furniture-card').count(), 3)
   await page.locator('#catalog-filters button', { hasText: 'All' }).click()
   assert.equal(await page.locator('.lab-furniture-card').count(), ids.length)
-  assert.equal(await page.getByRole('button', { name: 'Place selected furniture' }).isEnabled(), false)
+  assert.equal(await page.getByRole('button', { name: 'Place Furniture' }).isEnabled(), false)
   const width = await page.evaluate(() => ({
     pageWidth: document.documentElement.scrollWidth,
     visibleWidth: document.documentElement.clientWidth,

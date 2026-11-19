@@ -26,15 +26,15 @@ try {
   await page.waitForURL(/\/RoomFitAR\/slam-lab\.html(?:\?|$)/, {
     timeout: 15000,
   })
-  assert.match(await page.title(), /RoomFit AR v0\.8/)
+  assert.match(await page.title(), /RoomFit \| See Furniture in Your Room/)
   await page.getByRole('heading', {
-    name: 'Test real-size furniture placement',
+    name: 'See furniture in your room.',
   }).waitFor()
   assert.equal(await page.locator('#place-furniture').count(), 1)
   assert.equal(await page.locator('#done-view').count(), 1)
   assert.equal(await page.locator('#resume-edit').count(), 1)
   await page.getByRole('link', { name: 'Open manual camera preview' }).waitFor()
-  console.log('PUBLIC ROOT: redirected to v0.7 tracked AR, furniture + Done + editing controls present.')
+  console.log('PUBLIC ROOT: redirected to the friendly RoomFit camera, furniture + Done + editing controls present.')
 
   // Explicit fallback should NOT redirect back into the tracked experiment.
   await page.goto(new URL('?studio=1&release=v0.7-tracked', base).href, {

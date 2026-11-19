@@ -34,8 +34,8 @@ try {
   await page.getByRole('link', { name: /Test SLAM Tracking/i }).waitFor()
   await page.getByRole('link', { name: /Test SLAM Tracking/i }).click()
   await page.waitForURL(/slam-lab\.html/)
-  await page.getByRole('heading', { name: /Test real-size furniture placement/i }).waitFor()
-  const start = page.getByRole('button', { name: 'Start 8th Wall SLAM test' })
+  await page.getByRole('heading', { name: /See furniture in your room./i }).waitFor()
+  const start = page.getByRole('button', { name: 'Start Camera' })
   assert.equal(await start.isEnabled(), true)
   await start.click()
   const info = await page.evaluate(() => ({
@@ -49,9 +49,9 @@ try {
   assert.equal(info.ran, true)
   assert.ok(info.modules.includes('roomfit-slam-test'))
   assert.equal(await page.locator('#furniture-catalog button.lab-furniture-card').count(), 12)
-  await page.getByRole('button', { name: /Compact Wooden Stool, Size/i }).waitFor()
-  await page.getByRole('button', { name: 'Place selected furniture' }).waitFor()
-  assert.equal(await page.getByRole('button', { name: 'Place selected furniture' }).isEnabled(), false)
+  await page.getByRole('button', { name: /Compact Wooden Stool, About/i }).waitFor()
+  await page.getByRole('button', { name: 'Place Furniture' }).waitFor()
+  assert.equal(await page.getByRole('button', { name: 'Place Furniture' }).isEnabled(), false)
   assert.deepEqual(errors, [])
   console.log('RoomFit SLAM lab: separate page, engine configuration, UI guard and no script errors passed (SDK mocked; real tracking not tested).')
 } finally { await browser.close() }
