@@ -2,11 +2,21 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#26745e" />
     <meta name="description" content="RoomFit AR: plan furniture in your real room using browser-based augmented reality on compatible devices." />
     <title>RoomFit AR | See Furniture in Your Room</title>
+    <script>
+      // The latest RoomFit v0.7 is the tracked furniture experiment, not the
+      // older screen-space Camera Studio. Keep the latter as an explicit
+      // fallback at /RoomFitAR/?studio=1; local development is unchanged.
+      if (location.hostname.toLowerCase() === 'yandere-spex.github.io' &&
+          /^\/RoomFitAR\/?$/i.test(location.pathname) &&
+          !new URLSearchParams(location.search).has('studio')) {
+        location.replace(new URL('slam-lab.html', location.href).href)
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

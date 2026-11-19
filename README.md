@@ -1,8 +1,10 @@
 # RoomFit AR
 
-**Camera-first browser-based augmented reality furniture placement prototype**
+**Browser-based furniture placement prototype with tracked AR experimentation**
 
-The application opens into the camera-first flow. On Android phones that support immersive WebXR with ARCore and hit testing, users can start a live immersive AR session, find a horizontal surface, and place a textured demo sofa or chair in the real room. The separate **Digital Draft** mode remains available as a 3D editor.
+The **latest phone experience (v0.7)** opens from the published website at https://yandere-spex.github.io/RoomFitAR/ and immediately goes to the **8th Wall SLAM furniture tracker** (`slam-lab.html`). It includes 12 textured furniture models, one-tap estimated floor placement, rotation and repositioning, and **Done → View from other angles**. The older manual Camera Studio remains accessible at https://yandere-spex.github.io/RoomFitAR/?studio=1 as an explicitly untracked fallback. Local Vite development keeps the original React home screen for testing.
+
+SLAM tracking and the estimated world meter scale still require testing against a real device and measuring tape; this is **not yet a guaranteed accurate room-fitting tool**.
 
 ## Implemented
 - Camera-first home screen (React, TypeScript, Vite)
@@ -29,7 +31,7 @@ The application opens into the camera-first flow. On Android phones that support
 
 ## Experimental browser SLAM test (separate from the camera filter)
 
-A new **SLAM test page** is available at `/slam-lab.html`, linked from the camera-first home screen. It uses the 8th Wall Distributed Engine Binary (loaded from its public CDN under its separate binary license), a textured sofa, an estimated ground plane and world-tracking status. This is a proof of concept: **no physical device tracking, floor anchoring or absolute-scale accuracy has been confirmed yet**. See `docs/SLAM_TEST_PROTOCOL.md` for the procedure and acceptance gates. Working Camera Furniture Studio remains unchanged at the home page. New development continues on `main`.
+The latest tracked AR workflow is the **default entry on GitHub Pages** at `/RoomFitAR/` (redirects to `/RoomFitAR/slam-lab.html`), with the old manual Camera Studio available only at `/RoomFitAR/?studio=1`. The 8th Wall Distributed Engine Binary is loaded from its official public CDN under its separate binary license. This is still a tracking experiment, **not independently validated physical room measurement**. See `docs/SLAM_TEST_PROTOCOL.md` for acceptance tests. New development continues on `main`.
 
 ## Twelve-model spatial testing collection
 
