@@ -215,7 +215,7 @@ function renderCatalog() {
     button.setAttribute('aria-label', product.name + ', ' + dimensionText(id))
     if (hasSourceMetricDimensions(id)) {
       const picture = document.createElement('img')
-      picture.src = '/models/thumbs/' + id + '.webp'
+      picture.src = import.meta.env.BASE_URL + 'models/thumbs/' + id + '.webp'
       picture.alt = ''
       picture.loading = 'lazy'
       button.append(picture)
