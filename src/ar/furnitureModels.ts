@@ -62,7 +62,8 @@ function loadTemplate(path: string) {
 export async function createFurnitureAsset(product: FurnitureProduct): Promise<THREE.Group> {
   const path = paths[product.id]
   if (!path) throw new Error('Photorealistic AR asset not yet available for this item.')
-  const original = await loadTemplate(path)
+  // Vite uses / locally and /RoomFitAR/ for the GitHub Pages deployment.
+  const original = await loadTemplate(import.meta.env.BASE_URL + path.replace(/^\/+/, ''))
   const root = original.clone(true)
   root.updateMatrixWorld(true)
 
