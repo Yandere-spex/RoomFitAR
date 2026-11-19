@@ -5,6 +5,8 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react()],
+  // GitHub Pages hosts project sites under /RoomFitAR/, while local Vite uses /.
+  base: process.env.GITHUB_PAGES === 'true' ? '/RoomFitAR/' : '/',
   build: {
     rolldownOptions: {
       input: {
